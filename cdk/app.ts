@@ -5,6 +5,7 @@ import * as cdk from "aws-cdk-lib";
 import { Vpc } from "./Vpc";
 import { Config } from "./config";
 import { PgStacInfra } from "./PgStacInfra";
+import { StacBrowser } from "./StacBrowser";
 const { stage, version, buildStackName, tags, jwksUrl, dataAccessRoleArn } =
   new Config();
 
@@ -34,3 +35,7 @@ new PgStacInfra(app, buildStackName("pgSTAC"), {
   bastionHostCreateElasticIp: stage === "prod",
   dataAccessRoleArn: dataAccessRoleArn,
 });
+
+new StacBrowser(app, buildStackName("browser"));
+
+
