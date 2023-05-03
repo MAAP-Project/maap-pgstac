@@ -1,7 +1,5 @@
-// create a BrowserStack class extending the Stack class
-
 import { Stack, aws_s3 as s3, aws_s3_deployment as s3_deployment, aws_cloudfront as cloudfront, aws_cloudfront_origins as cloudfront_origins} from "aws-cdk-lib";
-
+import { RemovalPolicy } from "aws-cdk-lib";
 
 import { Construct } from "constructs";
 
@@ -12,6 +10,7 @@ export class StacBrowser extends Stack {
 
         const bucket = new s3.Bucket(this, 'Bucket', {
         accessControl: s3.BucketAccessControl.PRIVATE,
+        removalPolicy: RemovalPolicy.DESTROY,
         })
 
         new s3_deployment.BucketDeployment(this, 'BucketDeployment', {
