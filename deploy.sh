@@ -15,6 +15,7 @@ echo "=========================="
 echo "JWKS_URL: $JWKS_URL"
 echo "DATA_ACCESS_ROLE_ARN: $DATA_ACCESS_ROLE_ARN"
 echo "STAGE: $STAGE"
+echo "BROWSER_CLOUDFRONT_DISTRIBUTION_ARN: $BROWSER_CLOUDFRONT_DISTRIBUTION_ARN"
 echo "=========================="
 
 # prompt user to continue. If yes, continue. If no, exit.

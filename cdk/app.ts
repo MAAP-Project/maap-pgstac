@@ -6,7 +6,7 @@ import { Vpc } from "./Vpc";
 import { Config } from "./config";
 import { PgStacInfra } from "./PgStacInfra";
 import { StacBrowser } from "./StacBrowser";
-const { stage, version, buildStackName, tags, jwksUrl, dataAccessRoleArn } =
+const { stage, version, buildStackName, tags, jwksUrl, dataAccessRoleArn, browserCloudFrontDistrbutionArn} =
   new Config();
 
 export const app = new cdk.App({});
@@ -36,6 +36,6 @@ new PgStacInfra(app, buildStackName("pgSTAC"), {
   dataAccessRoleArn: dataAccessRoleArn,
 });
 
-new StacBrowser(app, buildStackName("browser"));
+new StacBrowser(app, buildStackName("browser"), {cloudFrontDistributionArn: browserCloudFrontDistrbutionArn});
 
 
