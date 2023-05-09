@@ -4,10 +4,10 @@
 # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-ami-basics.html#amazon-linux-cloud-init
 
 users:
-  - name: USERNAME # probably output of `whoami` on terminal
+  - name: emiletenezakis # probably output of `whoami` on terminal
     shell: /bin/bash
     ssh_authorized_keys:
-      - PUBLIC_SSH_KEY # probably in `cat ~/.ssh/id_*.pub` on  terminal
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETCJCr2lkGVfCJsOzIsgkmauS36S64ZIGE8wNXr43AY e.tenezakis@gmail.com # probably in `cat ~/.ssh/id_*.pub` on  terminal
 
 # Example of changing SSH port (to 33333 in this case)
 # runcmd:

@@ -30,7 +30,7 @@ export class StacBrowser extends Stack {
 
         new s3_deployment.BucketDeployment(this, 'BucketDeployment', {
             destinationBucket: bucket,
-            sources: [s3_deployment.Source.asset('/Users/emiletenezakis/devseed/stac-browser/dist')]
+            sources: [s3_deployment.Source.asset(props.stacBrowserDistPath)]
           });
 
     }
@@ -40,6 +40,9 @@ export interface Props extends StackProps {
 
     // ARN of the cloudfront distribution to which we should grant read access to the browser bucket. 
     cloudFrontDistributionArn: string;
+
+    // location of the stac-browser dist directory in the local filesystem
+    stacBrowserDistPath: string;
 
 
 }

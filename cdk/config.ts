@@ -5,6 +5,7 @@ export class Config {
   readonly jwksUrl: string;
   readonly dataAccessRoleArn: string;
   readonly browserCloudFrontDistrbutionArn: string;
+  readonly stacBrowserDistPath: string;
 
   constructor() {
     if (!process.env.STAGE) throw Error("Must provide STAGE");
@@ -21,6 +22,8 @@ export class Config {
     this.dataAccessRoleArn = process.env.DATA_ACCESS_ROLE_ARN!;
     if (!process.env.BROWSER_CLOUDFRONT_DISTRIBUTION_ARN) throw Error("Must provide BROWSER_CLOUDFRONT_DISTRIBUTION_ARN");
     this.browserCloudFrontDistrbutionArn = process.env.BROWSER_CLOUDFRONT_DISTRIBUTION_ARN!;
+    if (!process.env.STAC_BROWSER_DIST_PATH) throw Error("Must provide STAC_BROWSER_DIST_PATH");
+    this.stacBrowserDistPath = process.env.STAC_BROWSER_DIST_PATH!;
   }
 
   /**
