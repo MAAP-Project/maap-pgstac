@@ -5,6 +5,7 @@ This repository contains the AWS CDK code (written in typescript) used to deploy
 - a database
 - an API to add or delete things from the database
 - an API to query the database
+- a browser front-end to the latter API
 
 This wrapper repository only adds a VPC to add these components in and a 'bastion host' for secure direct connections to the database (see the [asdi repository](https://github.com/developmentseed/aws-asdi-pgstac))
 
@@ -16,6 +17,7 @@ This wrapper repository only adds a VPC to add these components in and a 'bastio
 2. `docker` is installed and running
 3. node dependencies are installed : run `npm install` from the root of this repo. :warning: See below if installing from a local version of `cdk-pgstac`.
 4. If deploying on SMCE : make sure you are properly authenticated. Refer to [these instructions](https://github.com/NASA-IMPACT/active-maap-sprint/issues/482#issuecomment-1491475121).
+5. An AWS CloudFront distribution exists so that you provide its ARN which will be added to the static browser bucket policies. This distribution could in theory be created as part of this stack and the parameter removed, however, for legacy reasons we need to allow for a distribution created in another AWS account. You will need to update the distribution after the deployment here to add an origin with the newly created bucket name.
 
 ### Steps
 
