@@ -12,6 +12,7 @@ import {
   PgStacApiLambda,
   PgStacDatabase,
   StacIngestor,
+  TitilerPgstacApiLambda
 } from "cdk-pgstac";
 import { readFileSync } from "fs";
 
@@ -52,6 +53,22 @@ export class PgStacInfra extends Stack {
       db,
       dbSecret: pgstacSecret,
       subnetSelection: apiSubnetSelection,
+    });
+
+
+    const buckets = ["nasa-maap-data-store"];
+
+    new TitilerPgstacApiLambda(this, "titiler-pgstac-api", {
+      apiEnv: {
+        NAME: `MAAP titiler pgstac API (${stage})`,
+        VERSION: version,
+        DESCRIPTION: "titiler pgstac API for the MAAP STAC system.",
+      },
+      vpc,
+      db,
+      dbSecret: pgstacSecret,
+      subnetSelection: apiSubnetSelection,
+      buckets: buckets,
     });
 
     new BastionHost(this, "bastion-host", {
