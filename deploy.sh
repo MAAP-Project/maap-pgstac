@@ -8,13 +8,13 @@ set +a
 # grab the JWKS_URL from auth deployment
 export JWKS_URL=$(aws cloudformation describe-stacks --stack-name 'MAAP-STAC-auth-dev' --query 'Stacks[0].Outputs[?OutputKey==`jwksurl`].OutputValue' --output text)
 export DATA_ACCESS_ROLE_ARN=$(aws cloudformation describe-stacks --stack-name 'MAAP-STAC-roles-dev' --query 'Stacks[0].Outputs[?ExportName==`data-access-role-arn`].OutputValue' --output text)
-
 # print out the environment variables created here with a nice header
 echo "Environment variables set:"
 echo "=========================="
 echo "JWKS_URL: $JWKS_URL"
 echo "DATA_ACCESS_ROLE_ARN: $DATA_ACCESS_ROLE_ARN"
 echo "STAGE: $STAGE"
+echo "STAC_API_INTEGRATION_API_ARN: $STAC_API_INTEGRATION_API_ARN"
 echo "=========================="
 
 # prompt user to continue. If yes, continue. If no, exit.
