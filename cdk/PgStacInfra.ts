@@ -33,7 +33,8 @@ export class PgStacInfra extends Stack {
           ? ec2.SubnetType.PUBLIC
           : ec2.SubnetType.PRIVATE_ISOLATED,
       },
-      allocatedStorage: 1024,
+      // set allocated stoarge to 20GB if stage is test, otherwise 50GB
+      allocatedStorage: stage === "test" ? 20 : 50,
       // set instance type to t3.micro if stage is test, otherwise t3.small
       instanceType: stage === "test" ? ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO) : ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.SMALL),
     });
