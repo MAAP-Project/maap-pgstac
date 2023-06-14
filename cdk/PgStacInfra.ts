@@ -21,7 +21,7 @@ export class PgStacInfra extends Stack {
   constructor(scope: Construct, id: string, props: Props) {
     super(scope, id, props);
 
-    const { vpc, stage, version, jwksUrl, dataAccessRoleArn} = props;
+    const { vpc, stage, version, jwksUrl, dataAccessRoleArn, allocatedStorage} = props;
 
     const { db, pgstacSecret } = new PgStacDatabase(this, "pgstac-db", {
       vpc,
@@ -33,8 +33,7 @@ export class PgStacInfra extends Stack {
           ? ec2.SubnetType.PUBLIC
           : ec2.SubnetType.PRIVATE_ISOLATED,
       },
-      // set allocated stoarge to 20GB if stage is test, otherwise 50GB
-      allocatedStorage: stage === "test" ? 20 : 50,
+      allocatedStorage: allocatedStorage,
       // set instance type to t3.micro if stage is test, otherwise t3.small
       instanceType: stage === "test" ? ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO) : ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.SMALL),
     });
@@ -147,5 +146,10 @@ export interface Props extends StackProps {
    * STAC API api gateway source ARN to be granted STAC API lambda invoke permission.
    */
   stacApiIntegrationApiArn: string;
+
+  /**
+   * allocated storage for pgstac database
+   */
+  allocatedStorage: number;
 }
         

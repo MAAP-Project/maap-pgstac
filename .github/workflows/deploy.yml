@@ -10,10 +10,12 @@ on:
       deployment_environment:
         description: 'environment'
         required: true
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     environment: "${{ github.event.inputs.deployment_environment }}"
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -47,6 +49,7 @@ jobs:
         STAC_API_INTEGRATION_API_ARN: ${{ vars.STAC_API_INTEGRATION_API_ARN }}
         JWKS_URL: ${{ steps.import-stacks-vars-to-output.outputs.JWKS_URL }}
         DATA_ACCESS_ROLE_ARN: ${{ steps.import-stacks-vars-to-output.outputs.DATA_ACCESS_ROLE_ARN }}
+        DB_ALLOCATED_STORAGE: ${{ vars.DB_ALLOCATED_STORAGE }}
       run: |
         npm install -g aws-cdk
         cdk deploy --all --require-approval never

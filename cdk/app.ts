@@ -5,7 +5,7 @@ import * as cdk from "aws-cdk-lib";
 import { Vpc } from "./Vpc";
 import { Config } from "./config";
 import { PgStacInfra } from "./PgStacInfra";
-const { stage, version, buildStackName, tags, jwksUrl, dataAccessRoleArn, stacApiIntegrationApiArn } =
+const { stage, version, buildStackName, tags, jwksUrl, dataAccessRoleArn, stacApiIntegrationApiArn, dbAllocatedStorage } =
   new Config();
 
 export const app = new cdk.App({});
@@ -34,4 +34,5 @@ new PgStacInfra(app, buildStackName("pgSTAC"), {
   bastionHostCreateElasticIp: stage === "prod",
   dataAccessRoleArn: dataAccessRoleArn,
   stacApiIntegrationApiArn: stacApiIntegrationApiArn,
+  allocatedStorage: dbAllocatedStorage
 });
