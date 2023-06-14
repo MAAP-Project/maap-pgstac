@@ -17,7 +17,7 @@ import {
   TitilerPgstacApiLambda
 } from "cdk-pgstac";
 import { readFileSync } from "fs";
-import { safeLoad } from "js-yaml";
+import { load } from "js-yaml";
 
 export class PgStacInfra extends Stack {
   constructor(scope: Construct, id: string, props: Props) {
@@ -60,7 +60,7 @@ export class PgStacInfra extends Stack {
 
 
     const fileContents = readFileSync('../titiler_buckets.yaml', 'utf8')
-    const buckets = safeLoad(fileContents);
+    const buckets = load(fileContents);
     
     new TitilerPgstacApiLambda(this, "titiler-pgstac-api", {
       apiEnv: {
