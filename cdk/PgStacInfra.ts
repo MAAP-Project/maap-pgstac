@@ -60,8 +60,8 @@ export class PgStacInfra extends Stack {
 
 
     const fileContents = readFileSync('../titiler_buckets.yaml', 'utf8')
-    const buckets = load(fileContents);
-    
+    const buckets = load(fileContents) as string[];
+
     new TitilerPgstacApiLambda(this, "titiler-pgstac-api", {
       apiEnv: {
         NAME: `MAAP titiler pgstac API (${stage})`,
