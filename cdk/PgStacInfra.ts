@@ -23,7 +23,7 @@ export class PgStacInfra extends Stack {
   constructor(scope: Construct, id: string, props: Props) {
     super(scope, id, props);
 
-    const { vpc, stage, version, jwksUrl, dataAccessRoleArn, allocatedStorage} = props;
+    const { vpc, stage, version, jwksUrl, dataAccessRoleArn, allocatedStorage, titilerBucketsPath} = props;
 
     const { db, pgstacSecret } = new PgStacDatabase(this, "pgstac-db", {
       vpc,
@@ -59,7 +59,7 @@ export class PgStacInfra extends Stack {
     });
 
 
-    const fileContents = readFileSync('../titiler_buckets.yaml', 'utf8')
+    const fileContents = readFileSync(titilerBucketsPath, 'utf8')
     const buckets = load(fileContents) as string[];
 
     new TitilerPgstacApiLambda(this, "titiler-pgstac-api", {
@@ -169,5 +169,10 @@ export interface Props extends StackProps {
    * allocated storage for pgstac database
    */
   allocatedStorage: number;
+
+  /**
+   * yaml file containing the list of buckets the titiler lambda should be granted access to
+   */
+  titilerBucketsPath: string;
 }
         

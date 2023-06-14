@@ -34,5 +34,6 @@ new PgStacInfra(app, buildStackName("pgSTAC"), {
   bastionHostCreateElasticIp: stage === "prod",
   dataAccessRoleArn: dataAccessRoleArn,
   stacApiIntegrationApiArn: stacApiIntegrationApiArn,
-  allocatedStorage: dbAllocatedStorage
+  allocatedStorage: dbAllocatedStorage,
+  titilerBucketsPath: "./titiler_buckets.yaml"
 });

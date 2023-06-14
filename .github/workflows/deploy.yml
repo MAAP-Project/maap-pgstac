@@ -17,6 +17,7 @@ jobs:
     environment: "${{ github.event.inputs.deployment_environment }}"
     
     steps:
+
     - name: Checkout repository
       uses: actions/checkout@v2
 
@@ -33,7 +34,9 @@ jobs:
         role-session-name: MAAP-CDK-pgstac-deploy
 
     - name: Install deployment dependencies
-      run: npm install
+      run: | 
+        npm install
+        curl -o node_modules/cdk-pgstac/lib/titiler-pgstac-api/runtime/Dockerfile https://raw.githubusercontent.com/developmentseed/cdk-pgstac/titiler-pgstac-dockerfile-copy-syntax/lib/titiler-pgstac-api/runtime/Dockerfile
 
 
     - name: Import stacks variables to github output
