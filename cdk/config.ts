@@ -5,13 +5,13 @@ export class Config {
   readonly jwksUrl: string;
   readonly dataAccessRoleArn: string;
   readonly stacApiIntegrationApiArn: string;
+  readonly dbAllocatedStorage: number;
 
   constructor() {
     if (!process.env.STAGE) throw Error("Must provide STAGE");
     this.stage = process.env.STAGE;
     this.version = process.env.npm_package_version!; // Set by node.js
     this.tags = {
-      created_by: process.env.USER!,
       version: this.version,
       stage: this.stage,
     };
@@ -21,6 +21,8 @@ export class Config {
     this.dataAccessRoleArn = process.env.DATA_ACCESS_ROLE_ARN!;
     if (!process.env.STAC_API_INTEGRATION_API_ARN) throw Error("Must provide STAC_API_INTEGRATION_API_ARN");
     this.stacApiIntegrationApiArn = process.env.STAC_API_INTEGRATION_API_ARN!;
+    if (!process.env.DB_ALLOCATED_STORAGE) throw Error("Must provide DB_ALLOCATED_STORAGE");
+    this.dbAllocatedStorage = Number(process.env.DB_ALLOCATED_STORAGE!);
   }
 
   /**
