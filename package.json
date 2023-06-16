@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "aws-cdk-lib": "^2.45.0",
-    "cdk-pgstac": "4.2.1",
+    "cdk-pgstac": "4.2.2",
     "constructs": "^10.1.113",
     "source-map-support": "^0.5.16"
   }
