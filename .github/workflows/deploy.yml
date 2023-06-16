@@ -36,8 +36,6 @@ jobs:
     - name: Install deployment dependencies
       run: | 
         npm install
-        curl -o node_modules/cdk-pgstac/lib/titiler-pgstac-api/runtime/Dockerfile https://raw.githubusercontent.com/developmentseed/cdk-pgstac/titiler-pgstac-dockerfile-copy-syntax/lib/titiler-pgstac-api/runtime/Dockerfile
-
 
     - name: Import stacks variables to github output
       id: import-stacks-vars-to-output
