@@ -12,7 +12,10 @@ export class Config {
     this.stage = process.env.STAGE;
     this.version = process.env.npm_package_version!; // Set by node.js
     this.tags = {
-      version: this.version,
+      project: "MAAP",
+      author: String(process.env.AUTHOR),
+      gitCommit : String(process.env.COMMIT_SHA),
+      gitRepository: String(process.env.GIT_REPOSITORY),
       stage: this.stage,
     };
     if (!process.env.JWKS_URL) throw Error("Must provide JWKS_URL");

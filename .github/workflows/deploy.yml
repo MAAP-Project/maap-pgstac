@@ -51,6 +51,9 @@ jobs:
         JWKS_URL: ${{ steps.import-stacks-vars-to-output.outputs.JWKS_URL }}
         DATA_ACCESS_ROLE_ARN: ${{ steps.import-stacks-vars-to-output.outputs.DATA_ACCESS_ROLE_ARN }}
         DB_ALLOCATED_STORAGE: ${{ vars.DB_ALLOCATED_STORAGE }}
+        GIT_REPOSITORY: ${{ github.repository}}
+        COMMIT_SHA: ${{ github.sha }}
+        AUTHOR: ${{ github.actor }}
       run: |
         npm install -g aws-cdk
         cdk deploy --all --require-approval never
