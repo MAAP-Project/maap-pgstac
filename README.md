@@ -1,29 +1,14 @@
-# MAAP STAC Infrastructure
+# MAAP eoapi
 
-This repository contains the AWS CDK code (written in typescript) used to deploy the MAAP project STAC infrastructure. This is mostly a thin wrapper that makes use of the [cdk-pgstac](https://github.com/developmentseed/cdk-pgstac) constructs : 
+This repository contains the AWS CDK code (written in typescript) used to deploy the MAAP project eoapi infrastructure. It is based on the [eoapi-template example](https://github.com/developmentseed/eoapi-template). For the MAAP use case, we use part of these constructs, to define :
 
-- a database
-- an API to add or delete things from the database
-- an API to query the database
+- a database (a pgstac database, more precisely)
+- an API to add things to the STAC database
+- an API to query the STAC database
+- a bastion host for secure connections to the database
 
-This wrapper repository only adds a VPC to add these components in and a 'bastion host' for secure direct connections to the database (see the [asdi repository](https://github.com/developmentseed/aws-asdi-pgstac))
+This wrapper repository creates a VPC to add these components in and a 'bastion host' for secure direct connections to the database (see the [asdi repository](https://github.com/developmentseed/aws-asdi-pgstac))
 
 ## Deployment
 
-### Requirements
-
-1. `node.js` is installed
-2. `docker` is installed and running
-3. node dependencies are installed : run `npm install` from the root of this repo. :warning: See below if installing from a local version of `cdk-pgstac`.
-4. If deploying on SMCE : make sure you are properly authenticated. Refer to [these instructions](https://github.com/NASA-IMPACT/active-maap-sprint/issues/482#issuecomment-1491475121).
-
-### Steps
-
-1. add your information to `userdata.yaml` (see [asdi repository](https://github.com/developmentseed/aws-asdi-pgstac))
-2. add your IP address to the IP whitelist in `cdk/app.ts` (see [asdi repository](https://github.com/developmentseed/aws-asdi-pgstac)). The bastion host white list determines who can directly connect to the database.
-3. populate the `.env` file. 
-4. from the root of this repository, run `./deploy.sh`. Make sure to use `./` and not `source`. 
-
-## Deploy with a local version of `cdk-pgstac`
-
-If a local filesystem version of cdk-pgstac is listed in the `package.json` dependencies, make sure to follow [these instructions](https://github.com/developmentseed/cdk-pgstac/pull/34#issuecomment-1500558124) to have the right setup.
+Deployment happens through a github workflow manually triggered and defined in `.github/workflows/deploy.yaml`.
