@@ -12,7 +12,7 @@ class StacIngestion:
 
     def __init__(self):
         self.ingestor_url = os.getenv("INGESTOR_URL")
-        self.stac_url = "https://stac.test.maap-project.org"
+        self.stac_url = os.getenv("STAC_API_URL")
         self.collections_endpoint = "/collections"
         self.items_endpoint = "/ingestions"
         self.current_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -104,7 +104,6 @@ class StacIngestion:
         return test_collection
 
     def get_test_item(self):
-        print(os.getcwd())
         with open(
             os.path.join(self.current_file_path, "fixtures", "test_item.json"), "r"
         ) as f:

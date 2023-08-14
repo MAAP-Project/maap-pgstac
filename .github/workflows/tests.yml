@@ -5,13 +5,17 @@ permissions:
     contents: read  # required for actions/checkout
 
 on:
+    # Uncomment below for running it manually on the github UI
+    workflow_dispatch:
+
+    # Uncomment below for running it on a push in a specific branch
     # push:
     #     branches:
-    #         - "tests-infra-pytest"
+    #         - "change-stac-api-url-stage"
 
     # Uncomment below for running it as a cron job
-    schedule:
-       - cron: '15 16 * * 5'
+    # schedule:
+    #    - cron: '15 16 * * 5'
 
 jobs:
     python-job:
@@ -22,8 +26,6 @@ jobs:
         steps:
           - name: Checkout repository
             uses: actions/checkout@v3
-            with:
-              ref: tests-infra-pytest
 
           - name: Setup Python
             uses: actions/setup-python@v3
@@ -45,6 +47,7 @@ jobs:
           - name: Run pytest
             env:
                 INGESTOR_URL: ${{ vars.INGESTOR_URL }}
+                STAC_API_URL: ${{ vars.STAC_API_URL }}
                 SECRET_ID: ${{ vars.SECRET_ID }}
             run: |
                 pytest tests

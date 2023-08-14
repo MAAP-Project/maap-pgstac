@@ -1,6 +1,7 @@
 import pytest
 import pystac
 from pystac import STACValidationError
+import time
 
 # Test validating the collection
 def test_validate_collection(test_collection):
@@ -20,12 +21,15 @@ def test_insert_collection(
         authentication_token, test_collection
     )
     assert response.status_code in [200, 201], f"Failed to insert the test_collection :\n{response.text}"
-
+    # Wait for the collection to be inserted
+    time.sleep(10)
 
 # Test inserting item
 def test_insert_item(stac_ingestion_instance, authentication_token, test_item):
     response = stac_ingestion_instance.insert_item(authentication_token, test_item)
     assert response.status_code in [200, 201], f"Failed to insert the test_item :\n{response.text}"
+    # Wait for the item to be inserted
+    time.sleep(10)
 
 
 # Test querying collection and verifying inserted collection
