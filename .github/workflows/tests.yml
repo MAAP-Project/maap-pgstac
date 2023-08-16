@@ -1,0 +1,53 @@
+name: tests
+
+permissions:
+    id-token: write  # required for requesting the JWT
+    contents: read  # required for actions/checkout
+
+on:
+    # Uncomment below for running it manually on the github UI
+    workflow_dispatch:
+
+    # Uncomment below for running it on a push in a specific branch
+    # push:
+    #     branches:
+    #         - "change-stac-api-url-stage"
+
+    # Uncomment below for running it as a cron job
+    # schedule:
+    #    - cron: '15 16 * * 5'
+
+jobs:
+    python-job:
+        name: "PyTest tests"
+        runs-on: ubuntu-latest
+        environment: "test"
+
+        steps:
+          - name: Checkout repository
+            uses: actions/checkout@v3
+
+          - name: Setup Python
+            uses: actions/setup-python@v3
+            with:
+                python-version: '3.11.4'
+
+          - name: Assume Github OIDC role
+            uses: aws-actions/configure-aws-credentials@v2
+            with:
+                aws-region: us-west-2
+                role-to-assume: ${{ vars.MAAP_EOAPI_TEST_ROLE }}
+                role-session-name: maap-eoapi-test
+
+          - name: Install dependencies
+            run: |
+                python -m pip install --upgrade pip
+                pip install -r tests/requirements.txt
+
+          - name: Run pytest
+            env:
+                INGESTOR_URL: ${{ vars.INGESTOR_URL }}
+                STAC_API_URL: ${{ vars.STAC_API_URL }}
+                SECRET_ID: ${{ vars.SECRET_ID }}
+            run: |
+                pytest tests

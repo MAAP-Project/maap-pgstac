@@ -1,0 +1,5 @@
+pytest
+boto3
+pystac
+pystac[validation]
+requests
