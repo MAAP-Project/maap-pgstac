@@ -5,7 +5,6 @@ import {
   aws_iam as iam,
   aws_ec2 as ec2,
   aws_rds as rds,
-  aws_apigateway as apigw,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import {
@@ -14,9 +13,6 @@ import {
   PgStacDatabase,
   StacIngestor,
   TitilerPgstacApiLambda,
-  StacIngestorProps,
-  TitilerPgStacApiLambdaProps,
-  PgStacApiLambdaProps,
 } from "../eoapi-cdk/lib";
 import { DomainName } from "@aws-cdk/aws-apigatewayv2-alpha";
 import { readFileSync } from "fs";
@@ -48,8 +44,8 @@ export class PgStacInfra extends Stack {
         ? ec2.SubnetType.PUBLIC
         : ec2.SubnetType.PRIVATE_WITH_EGRESS,
     };
-    console.log("DOMAIN NAMES: ", props.stacApiCustomDomainName, props.IngestorDomainName, props.titilerPgStacApiCustomDomainName, props.certificateArn)
-    let stacApiProps: PgStacApiLambdaProps = {
+
+    const stacApiLambda = new PgStacApiLambda(this, "pgstac-api", {
       apiEnv: {
         NAME: `MAAP STAC API (${stage})`,
         VERSION: version,
@@ -59,28 +55,15 @@ export class PgStacInfra extends Stack {
       db,
       dbSecret: pgstacSecret,
       subnetSelection: apiSubnetSelection,
-    };
-
-    if (props.stacApiCustomDomainName && props.certificateArn) {
-      const existingDomain = apigw.DomainName.fromDomainNameAttributes(this, 'stac-api-domain-name', {
+      stacApiDomainName: (props.stacApiCustomDomainName && props.certificateArn) ? new DomainName(this, "stac-api-domain-name", {
         domainName: props.stacApiCustomDomainName,
-        domainNameAliasHostedZoneId: 'domainNameAliasHostedZoneId',
-        domainNameAliasTarget: 'domainNameAliasTarget',
-      });
-      stacApiProps = {
-        ...stacApiProps,
-        stacApiDomainName: new DomainName(this, "stac-api-domain-name", {
-          domainName: props.stacApiCustomDomainName,
-          certificate: acm.Certificate.fromCertificateArn(
-            this,
-            "stacApiCustomDomainNameCertificate",
-            props.certificateArn
-          ),
-        }),
-      };
-    }
-    
-    const stacApiLambda = new PgStacApiLambda(this, "pgstac-api", stacApiProps);
+        certificate: acm.Certificate.fromCertificateArn(
+          this,
+          "stacApiCustomDomainNameCertificate",
+          props.certificateArn
+        ),
+      }): undefined,
+    })
 
     stacApiLambda.stacApiLambdaFunction.addPermission('ApiGatewayInvoke', {
       principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
@@ -90,7 +73,7 @@ export class PgStacInfra extends Stack {
     const fileContents = readFileSync(titilerBucketsPath, 'utf8')
     const buckets = load(fileContents) as string[];
 
-    let titilerPgstacProps: TitilerPgStacApiLambdaProps = {
+    new TitilerPgstacApiLambda(this, "titiler-pgstac-api", {
       apiEnv: {
         NAME: `MAAP titiler pgstac API (${stage})`,
         VERSION: version,
@@ -101,22 +84,16 @@ export class PgStacInfra extends Stack {
       dbSecret: pgstacSecret,
       subnetSelection: apiSubnetSelection,
       buckets: buckets,
-    };
-
-    if (props.titilerPgStacApiCustomDomainName && props.certificateArn) {
-      titilerPgstacProps = {
-        ...titilerPgstacProps,
-        titilerPgstacApiDomainName: new DomainName(this, "titiler-pgstac-api-domain-name", {
+      titilerPgstacApiDomainName: (props.titilerPgStacApiCustomDomainName && props.certificateArn) ? 
+        new DomainName(this, "titiler-pgstac-api-domain-name", {
           domainName: props.titilerPgStacApiCustomDomainName,
           certificate: acm.Certificate.fromCertificateArn(
             this,
             "titilerPgStacCustomDomainNameCertificate",
             props.certificateArn
           ),
-        }),
-      };
-    }
-    new TitilerPgstacApiLambda(this, "titiler-pgstac-api", titilerPgstacProps);
+        }): undefined,
+    })
 
     new BastionHost(this, "bastion-host", {
       vpc,
@@ -131,7 +108,7 @@ export class PgStacInfra extends Stack {
     
     const dataAccessRole = iam.Role.fromRoleArn(this, "data-access-role", dataAccessRoleArn);
 
-    let stacIngestorProps: StacIngestorProps = {
+    new StacIngestor(this, "stac-ingestor", {
       vpc,
       stacUrl: stacApiLambda.url,
       dataAccessRole,
@@ -145,23 +122,15 @@ export class PgStacInfra extends Stack {
         JWKS_URL: jwksUrl,
         REQUESTER_PAYS: "true",
       },
-    };
-
-    if (props.IngestorDomainName && props.certificateArn) {
-      stacIngestorProps = {
-        ...stacIngestorProps,
-        ingestorDomainNameOptions: {
-          domainName: props.IngestorDomainName,
-          certificate: acm.Certificate.fromCertificateArn(
-            this,
-            "ingestorCustomDomainNameCertificate",
-            props.certificateArn
-          ),
-        },
-      };
-    }
-
-   new StacIngestor(this, "stac-ingestor", stacIngestorProps);
+      ingestorDomainNameOptions: (props.IngestorDomainName && props.certificateArn) ? {
+        domainName: props.IngestorDomainName,
+        certificate: acm.Certificate.fromCertificateArn(
+          this,
+          "ingestorCustomDomainNameCertificate",
+          props.certificateArn
+        ),
+      } : undefined
+    })
   }
 }
 
