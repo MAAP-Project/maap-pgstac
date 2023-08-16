@@ -18,7 +18,7 @@ import {
   TitilerPgStacApiLambdaProps,
   PgStacApiLambdaProps,
 } from "../eoapi-cdk/lib";
-// import { DomainName } from "@aws-cdk/aws-apigatewayv2-alpha";
+import { DomainName } from "@aws-cdk/aws-apigatewayv2-alpha";
 import { readFileSync } from "fs";
 import { load } from "js-yaml";
 
@@ -69,15 +69,14 @@ export class PgStacInfra extends Stack {
       });
       stacApiProps = {
         ...stacApiProps,
-        stacApiDomainName: existingDomain,
-        // stacApiDomainName: new DomainName(this, "stac-api-domain-name", {
-        //   domainName: props.stacApiCustomDomainName,
-        //   certificate: acm.Certificate.fromCertificateArn(
-        //     this,
-        //     "stacApiCustomDomainNameCertificate",
-        //     props.certificateArn
-        //   ),
-        // }),
+        stacApiDomainName: new DomainName(this, "stac-api-domain-name", {
+          domainName: props.stacApiCustomDomainName,
+          certificate: acm.Certificate.fromCertificateArn(
+            this,
+            "stacApiCustomDomainNameCertificate",
+            props.certificateArn
+          ),
+        }),
       };
     }
     
