@@ -15,7 +15,7 @@ import {
   PgStacDatabase,
   StacIngestor,
   TitilerPgstacApiLambda
-} from "cdk-pgstac";
+} from "eoapi-cdk";
 import { readFileSync } from "fs";
 import { load } from "js-yaml";
 
