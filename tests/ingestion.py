@@ -13,6 +13,7 @@ class StacIngestion:
     def __init__(self):
         self.ingestor_url = os.getenv("INGESTOR_URL")
         self.stac_url = os.getenv("STAC_API_URL")
+        self.titiler_pgstac_url = os.getenv("TITILER_PGSTAC_URL")
         self.collections_endpoint = "/collections"
         self.items_endpoint = "/ingestions"
         self.current_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -95,6 +96,19 @@ class StacIngestion:
         )
         return response
 
+    def register_mosaic(self, search_request):
+        response = requests.post(
+            self.titiler_pgstac_url + "/mosaic/register", json=search_request
+        )
+        return response
+    
+    def list_mosaic_assets(self, search_id):
+        """ list the assets of the first tile """
+        response = requests.get(
+            self.titiler_pgstac_url + f"/mosaic/{search_id}/tiles/0/0/0/assets"
+        )
+        return response        
+    
     def get_test_collection(self):
         with open(
             os.path.join(self.current_file_path, "fixtures", "test_collection.json"),
@@ -109,6 +123,14 @@ class StacIngestion:
         ) as f:
             test_item = json.load(f)
         return test_item
+    
+    
+    def get_test_titiler_search_request(self):
+        with open(
+            os.path.join(self.current_file_path, "fixtures", "test_titiler_search_request.json"), "r"
+        ) as f:
+            test_titiler_search_request = json.load(f)
+        return test_titiler_search_request
 
     def delete_collection(self, token, collection_id):
         headers = {"Authorization": f"bearer {token}"}
