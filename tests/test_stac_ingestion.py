@@ -1,6 +1,5 @@
 import pytest
 import pystac
-from pystac import STACValidationError
 import time
 
 # Test validating the collection
@@ -37,6 +36,19 @@ def test_query_collection(stac_ingestion_instance, test_collection):
     response = stac_ingestion_instance.query_collection(test_collection["id"])
     assert response.status_code in [200, 201], f"Failed to query the test_collection :\n{response.text}"
 
+# Test registering a mosaic and querying its assets
+def test_titiler_pgstac(stac_ingestion_instance, test_titiler_search_request, test_item):
+    register_response = stac_ingestion_instance.register_mosaic(test_titiler_search_request)
+    assert register_response.status_code in [200, 201], f"Failed to register the mosaic :\n{register_response.text}"
+    search_id = register_response.json()["searchid"]
+    # allow for some time for the mosaic to be inserted
+    time.sleep(10)
+    asset_query_response = stac_ingestion_instance.list_mosaic_assets(search_id)
+    assert asset_query_response.status_code in [200, 201], f"Failed to query the mosaic's assets for mosaic {search_id} :\n{asset_query_response.text}"
+    assets_json = asset_query_response.json()
+    # expects a single item in the collection
+    assert len(assets_json) == 1
+    assert all([k in assets_json[0]['assets'] for k in test_item['assets'].keys()])
 
 # Test querying items and verifying inserted items
 def test_query_items(stac_ingestion_instance, test_collection, test_item):
