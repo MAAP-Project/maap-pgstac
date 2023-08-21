@@ -30,8 +30,8 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-region: us-west-2
-        role-to-assume: arn:aws:iam::916098889494:role/GithubOIDCRole-MAAP-Project-maap-cdk-pgstac
-        role-session-name: MAAP-CDK-pgstac-deploy
+        role-to-assume: ${{ vars.DEPLOY_ROLE }}
+        role-session-name: MAAP-eoapi-${{ github.event.inputs.deployment_environment }}-deploy
 
     - name: Install deployment dependencies
       run: | 
