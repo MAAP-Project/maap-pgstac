@@ -203,19 +203,19 @@ export interface Props extends StackProps {
   certificateArn?: string | undefined;
 
   /**
-   * Domain name to use for CDN.
+   * Domain name to use for CDN. If defined, a new CDN will be created
    * Example: "stac.maap.xyz"
   */
   IngestorDomainName?: string | undefined;
 
   /**
-   * Domain name to use for titiler pgstac api.
+   * Domain name to use for titiler pgstac api. If defined, a new CDN will be created.
    * Example: "titiler-pgstac-api.dit.maap-project.org"
    */
   titilerPgStacApiCustomDomainName?: string | undefined;
 
   /**
-   * Domain name to use for stac api.
+   * Domain name to use for stac api. If defined, a new CDN will be created.
    * Example: "stac-api.dit.maap-project.org""
    */
   stacApiCustomDomainName?: string | undefined;
