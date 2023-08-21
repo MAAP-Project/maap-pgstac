@@ -46,8 +46,9 @@ jobs:
 
           - name: Run pytest
             env:
-                INGESTOR_URL: ${{ vars.INGESTOR_URL }}
-                STAC_API_URL: ${{ vars.STAC_API_URL }}
+                INGESTOR_DOMAIN_NAME: ${{ vars.INGESTOR_DOMAIN_NAME }}
+                STAC_API_CUSTOM_DOMAIN_NAME: ${{ vars.STAC_API_CUSTOM_DOMAIN_NAME }}
+                TITILER_PGSTAC_API_CUSTOM_DOMAIN_NAME: ${{ vars.TITILER_PGSTAC_API_CUSTOM_DOMAIN_NAME }}
                 SECRET_ID: ${{ vars.SECRET_ID }}
             run: |
                 pytest tests
