@@ -54,6 +54,10 @@ jobs:
         GIT_REPOSITORY: ${{ github.repository}}
         COMMIT_SHA: ${{ github.sha }}
         AUTHOR: ${{ github.actor }}
+        CERTIFICATE_ARN: ${{ vars.CERTIFICATE_ARN }}
+        INGESTOR_DOMAIN_NAME: ${{ vars.INGESTOR_DOMAIN_NAME }}
+        TITILER_PGSTAC_API_CUSTOM_DOMAIN_NAME: ${{ vars.TITILER_PGSTAC_API_CUSTOM_DOMAIN_NAME }}
+        STAC_API_CUSTOM_DOMAIN_NAME: ${{ vars.STAC_API_CUSTOM_DOMAIN_NAME}}
       run: |
         npm install -g aws-cdk
         cdk deploy --all --require-approval never
