@@ -13,7 +13,7 @@ import {
   PgStacDatabase,
   StacIngestor,
   TitilerPgstacApiLambda,
-} from "../eoapi-cdk/lib";
+} from "eoapi-cdk";
 import { DomainName } from "@aws-cdk/aws-apigatewayv2-alpha";
 import { readFileSync } from "fs";
 import { load } from "js-yaml";
