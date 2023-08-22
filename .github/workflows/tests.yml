@@ -21,7 +21,12 @@ jobs:
     python-job:
         name: "PyTest tests"
         runs-on: ubuntu-latest
-        environment: "test"
+        strategy:
+          matrix:
+            include:
+              - environment: test
+              - environment: dev
+        environment: ${{ matrix.environment }}
 
         steps:
           - name: Checkout repository
@@ -37,7 +42,7 @@ jobs:
             with:
                 aws-region: us-west-2
                 role-to-assume: ${{ vars.MAAP_EOAPI_TEST_ROLE }}
-                role-session-name: maap-eoapi-test
+                role-session-name: maap-eoapi-tests-${{ matrix.environment }}
 
           - name: Install dependencies
             run: |
