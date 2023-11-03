@@ -118,7 +118,7 @@ class StacIngestion:
 
     def get_test_collection(self):
         with open(
-            os.path.join(self.current_file_path, "fixtures", "test_collection.json"),
+            os.path.join(self.current_file_path, "fixtures", "test_collection1.json"),
             "r",
         ) as f:
             test_collection = json.load(f)
