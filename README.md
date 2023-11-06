@@ -1,6 +1,6 @@
 # MAAP eoapi
 
-[![Tests Status](https://github.com/MAAP-Project/maap-eoapi/actions/workflows/tests.yml/badge.svg)]((https://github.com/MAAP-Project/maap-eoapi/actions?query=workflow:tests))
+[![Tests Status](https://github.com/MAAP-Project/maap-eoapi/actions/workflows/tests.yml/badge.svg?branch=test_badging_on_workflow)]((https://github.com/MAAP-Project/maap-eoapi/actions?query=workflow:tests))
 
 This repository contains the AWS CDK code (written in typescript) used to deploy the MAAP project eoapi infrastructure. It is based on the [eoapi-template example](https://github.com/developmentseed/eoapi-template). For the MAAP use case, we use part of these constructs, to define :
 
