@@ -43,16 +43,10 @@ pypgstac load --table collections test_collection.json
 
 This requires 
 
-1. that you are allowed to connect to the database. Because of the security requirements mentioned above, you must go through a tunnel using the bastion host. [See these docs for more details](https://developmentseed.org/eoapi-cdk/#bastionhost-)
+1. that you are allowed to connect to the database. Because of the security requirements mentioned above, you must go through an SSH tunnel using the bastion host EC2 instance. For this to work, you must be allowed to SSH into this EC@ instance [See these docs for more details](https://developmentseed.org/eoapi-cdk/#bastionhost-)
 2. [the configuration](https://stac-utils.github.io/pgstac/pypgstac/) for the database connection is present in your environment. 
 
 
 ### Indirect ingestion through the ingestion pipeline deployment
 
-For larger scale ingestions (a lot of items, for example), in MAAP we defined an approach where we : 
-1. First develop a python module that builds a STAC item out of a single input. It can be conformant to the [stactools-packages](https://github.com/stactools-packages) framework, or be as simple as [this example.](https://github.com/MAAP-Project/tri_seasonal_s1_sar_composites).
-2. Define an AWS lambda function that runs this module, an AWS queue where the lambda takes tasks from, and a file listing the tasks that fills the queue. 
-
-[This set up can be found here, defined as code](https://github.com/MAAP-Project/stac-pipeline).
-
-
+For larger scale ingestions, in MAAP we rely on [a fork of the stactools-pipelines repository](https://github.com/MAAP-Project/stactools-pipelines/tree/non-standard-inventory). If you want to ingest a collection in MAAP using this tool, you should develop a 'pipeline'. Details of this procedure can be found in the linked repository. You can follow an example that [was developed for maap here](https://github.com/MAAP-Project/stactools-pipelines/tree/non-standard-inventory/stactools_pipelines/pipelines/nisar-sim).
