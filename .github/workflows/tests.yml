@@ -58,7 +58,8 @@ jobs:
             run: |
                 pytest tests
 
-          - name: Post to a Slack channel
+          - name: slack
+            if: always()
             id: slack
             uses: slackapi/slack-github-action@v1.24.0
             with:
