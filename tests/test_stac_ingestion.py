@@ -53,6 +53,8 @@ def test_titiler_pgstac(stac_ingestion_instance, test_titiler_search_request, te
 # Test querying items and verifying inserted items
 def test_query_items(stac_ingestion_instance, test_collection, test_item):
     response = stac_ingestion_instance.query_items(test_collection["id"])
+    # allow for some time for the items to be inserted
+    time.sleep(10)
     assert response.status_code in [200, 201], f"Failed to query the items :\n{response.text}"
     item = response.json()["features"][0]
     assert item["id"] == test_item["id"], f"Inserted item - {test_item} \n not found in the queried items {item}"
