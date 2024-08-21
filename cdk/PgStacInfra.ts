@@ -4,11 +4,13 @@ import {
   aws_certificatemanager as acm,
   aws_iam as iam,
   aws_ec2 as ec2,
+  aws_lambda as lambda,
   aws_rds as rds,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import {
   BastionHost,
+  CustomLambdaFunctionProps,
   PgStacApiLambda,
   PgStacDatabase,
   StacIngestor,
@@ -73,6 +75,13 @@ export class PgStacInfra extends Stack {
     const fileContents = readFileSync(titilerBucketsPath, 'utf8')
     const buckets = load(fileContents) as string[];
 
+    const titilerPgstacLambdaOptions: CustomLambdaFunctionProps = {
+      code: lambda.Code.fromDockerBuild(__dirname, {
+        file: "runtimes/titiler-pgstac-api/Dockerfile",
+        buildArgs: { PYTHON_VERSION: "3.11" },
+      }),
+    };
+
     new TitilerPgstacApiLambda(this, "titiler-pgstac-api", {
       apiEnv: {
         NAME: `MAAP titiler pgstac API (${stage})`,
@@ -84,16 +93,19 @@ export class PgStacInfra extends Stack {
       dbSecret: pgstacSecret,
       subnetSelection: apiSubnetSelection,
       buckets: buckets,
-      titilerPgstacApiDomainName: (props.titilerPgStacApiCustomDomainName && props.certificateArn) ? 
-        new DomainName(this, "titiler-pgstac-api-domain-name", {
-          domainName: props.titilerPgStacApiCustomDomainName,
-          certificate: acm.Certificate.fromCertificateArn(
-            this,
-            "titilerPgStacCustomDomainNameCertificate",
-            props.certificateArn
-          ),
-        }): undefined,
-    })
+      titilerPgstacApiDomainName:
+        props.titilerPgStacApiCustomDomainName && props.certificateArn
+          ? new DomainName(this, "titiler-pgstac-api-domain-name", {
+              domainName: props.titilerPgStacApiCustomDomainName,
+              certificate: acm.Certificate.fromCertificateArn(
+                this,
+                "titilerPgStacCustomDomainNameCertificate",
+                props.certificateArn,
+              ),
+            })
+          : undefined,
+      lambdaFunctionOptions: titilerPgstacLambdaOptions,
+    });
 
     new BastionHost(this, "bastion-host", {
       vpc,
