@@ -21,14 +21,33 @@ os.environ.update(
     }
 )
 
+from titiler.core.factory import TilerFactory
+from titiler.extensions import (
+    cogValidateExtension,
+    cogViewerExtension,
+)
 from titiler.pgstac.db import connect_to_db  # noqa: E402
 from titiler.pgstac.main import app  # noqa: E402
 
 
-@app.on_event("startup")
 async def startup_event() -> None:
     """Connect to database on startup."""
     await connect_to_db(app)
+
+
+cog = TilerFactory(
+    router_prefix="/cog",
+    extensions=[
+        cogValidateExtension(),
+        cogViewerExtension(),
+    ],
+)
+
+app.include_router(
+    cog.router,
+    prefix="/cog",
+    tags=["Cloud Optimized GeoTIFF"],
+)
 
 
 handler = Mangum(app, lifespan="off")
