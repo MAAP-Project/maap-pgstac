@@ -21,6 +21,8 @@ os.environ.update(
     }
 )
 
+from fastapi import APIRouter, Request
+from fastapi.responses import RedirectResponse
 from titiler.core.factory import TilerFactory
 from titiler.extensions import (
     cogValidateExtension,
@@ -35,6 +37,9 @@ async def startup_event() -> None:
     await connect_to_db(app)
 
 
+########################################
+# Include the /cog router
+########################################
 cog = TilerFactory(
     router_prefix="/cog",
     extensions=[
@@ -48,6 +53,24 @@ app.include_router(
     prefix="/cog",
     tags=["Cloud Optimized GeoTIFF"],
 )
+
+
+########################################
+# Redirect /mosaic requests to /searches
+########################################
+redirect_router = APIRouter()
+
+
+@redirect_router.get("/mosaic/{subpath:path}", status_code=307)
+async def redirect_to_searches(request: Request):
+    new_path = request.url.path.replace("/mosaic", "/searches", 1)
+    query_string = request.url.query
+    if query_string:
+        new_path = f"{new_path}?{query_string}"
+    return RedirectResponse(url=new_path)
+
+
+app.include_router(redirect_router)
 
 
 handler = Mangum(app, lifespan="off")
