@@ -7,6 +7,8 @@ node_modules
 __pycache__
 .venv
 
+.envrc
+
 # CDK asset staging directory
 .cdk.staging
 cdk.out
