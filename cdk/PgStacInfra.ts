@@ -28,8 +28,9 @@ export class PgStacInfra extends Stack {
 
     const { db, pgstacSecret } = new PgStacDatabase(this, "pgstac-db", {
       vpc,
+      allowMajorVersionUpgrade: true,
       engine: rds.DatabaseInstanceEngine.postgres({
-        version: rds.PostgresEngineVersion.VER_15,
+        version: rds.PostgresEngineVersion.VER_14,
       }),
       vpcSubnets: {
         subnetType: props.dbSubnetPublic
