@@ -21,14 +21,14 @@ def test_insert_collection(
     )
     assert response.status_code in [200, 201], f"Failed to insert the test_collection :\n{response.text}"
     # Wait for the collection to be inserted
-    time.sleep(20)
+    time.sleep(60)
 
 # Test inserting item
 def test_insert_item(stac_ingestion_instance, authentication_token, test_item):
     response = stac_ingestion_instance.insert_item(authentication_token, test_item)
     assert response.status_code in [200, 201], f"Failed to insert the test_item :\n{response.text}"
     # Wait for the item to be inserted
-    time.sleep(20)
+    time.sleep(60)
 
 
 # Test querying collection and verifying inserted collection
@@ -52,7 +52,6 @@ def test_titiler_pgstac(stac_ingestion_instance, test_titiler_search_request, te
 
 # Test querying items and verifying inserted items
 def test_query_items(stac_ingestion_instance, test_collection, test_item):
-    time.sleep(10)
     response = stac_ingestion_instance.query_items(test_collection["id"])
     assert response.status_code in [200, 201], f"Failed to query the items :\n{response.text}"
     item = response.json()["features"][0]
