@@ -61,7 +61,9 @@ app.include_router(
 redirect_router = APIRouter()
 
 
-@redirect_router.get("/mosaic/{subpath:path}", status_code=307)
+@redirect_router.api_route(
+    "/mosaic/{subpath:path}", methods=["GET", "POST"], status_code=307
+)
 async def redirect_to_searches(request: Request):
     new_path = request.url.path.replace("/mosaic", "/searches", 1)
     query_string = request.url.query
