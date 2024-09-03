@@ -32,6 +32,7 @@ from titiler.pgstac.db import connect_to_db  # noqa: E402
 from titiler.pgstac.main import app  # noqa: E402
 
 
+@app.on_event("startup")
 async def startup_event() -> None:
     """Connect to database on startup."""
     await connect_to_db(app)
