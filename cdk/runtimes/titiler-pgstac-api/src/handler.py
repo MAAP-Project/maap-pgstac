@@ -23,10 +23,12 @@ os.environ.update(
 
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
-from titiler.core.factory import TilerFactory
+from rio_tiler.io import STACReader
+from titiler.core.factory import MultiBaseTilerFactory, TilerFactory
 from titiler.extensions import (
     cogValidateExtension,
     cogViewerExtension,
+    stacViewerExtension,
 )
 from titiler.pgstac.db import connect_to_db  # noqa: E402
 from titiler.pgstac.main import app  # noqa: E402
@@ -55,6 +57,23 @@ app.include_router(
     tags=["Cloud Optimized GeoTIFF"],
 )
 
+
+################################################
+# Include the /stac router (for stac_ipyleaflet)
+################################################
+stac = MultiBaseTilerFactory(
+    reader=STACReader,
+    router_prefix="/stac",
+    extensions=[
+        stacViewerExtension(),
+    ],
+)
+
+app.include_router(
+    stac.router,
+    prefix="/stac",
+    tags=["SpatioTemporal Asset Catalog"],
+)
 
 ########################################
 # Redirect /mosaic requests to /searches
