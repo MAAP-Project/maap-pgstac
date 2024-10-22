@@ -24,7 +24,7 @@ jobs:
     - name: Set up node
       uses: actions/setup-node@v2
       with:
-        node-version: 16
+        node-version: 20
 
     - name: Assume Github OIDC role
       uses: aws-actions/configure-aws-credentials@v2
@@ -58,6 +58,7 @@ jobs:
         INGESTOR_DOMAIN_NAME: ${{ vars.INGESTOR_DOMAIN_NAME }}
         TITILER_PGSTAC_API_CUSTOM_DOMAIN_NAME: ${{ vars.TITILER_PGSTAC_API_CUSTOM_DOMAIN_NAME }}
         STAC_API_CUSTOM_DOMAIN_NAME: ${{ vars.STAC_API_CUSTOM_DOMAIN_NAME}}
+        MOSAIC_HOST: ${{ vars.MOSAIC_HOST }}
       run: |
         npm install -g aws-cdk
         cdk deploy --all --require-approval never
