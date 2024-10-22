@@ -28,9 +28,16 @@ class ApiSettings(BaseSettings):
         secret_arn = info.data.get("pgstac_secret_arn")
         if secret_arn:
             postgres_secret = get_secret_dict(secret_arn)
-            return PostgresSettings(**postgres_secret)
+            return PostgresSettings(
+                postgres_user=postgres_secret["username"],
+                postgres_pass=postgres_secret["password"],
+                postgres_host=postgres_secret["host"],
+                postgres_dbname=postgres_secret["dbname"],
+                postgres_port=postgres_secret["port"],
+            )
 
-        return None
+        else:
+            raise ValueError("You must provide pgstac_secret_arn")
 
     @field_validator("cors_origins", mode="before")
     def parse_cors_origin(cls, v):
