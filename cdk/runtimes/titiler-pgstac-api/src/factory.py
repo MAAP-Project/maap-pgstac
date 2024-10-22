@@ -16,16 +16,6 @@ from cogeo_mosaic.backends import DynamoDBBackend
 from cogeo_mosaic.errors import MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 from fastapi import Depends, Header, HTTPException, Path, Query
-from impact_tiler.models import (
-    Link,
-    MosaicEntity,
-    StacApiQueryRequestBody,
-    StoreException,
-    TooManyResultsException,
-    UnsupportedOperationException,
-    UrisRequestBody,
-)
-from impact_tiler.settings import mosaic_config
 from pystac_client import Client
 from rio_tiler.constants import MAX_THREADS
 from rio_tiler.io import Reader
@@ -38,6 +28,19 @@ from titiler.core.resources.enums import ImageType, MediaType, OptionalHeader
 from titiler.core.resources.responses import JSONResponse, XMLResponse
 from titiler.mosaic import factory
 from titiler.mosaic.models.responses import Point
+
+from .models import (
+    Link,
+    MosaicEntity,
+    StacApiQueryRequestBody,
+    StoreException,
+    TooManyResultsException,
+    UnsupportedOperationException,
+    UrisRequestBody,
+)
+from .settings import MosaicSettings
+
+mosaic_config = MosaicSettings()
 
 
 @dataclass
@@ -96,6 +99,11 @@ class MosaicTilerFactory(factory.MosaicTilerFactory):
         ) -> MosaicJSON:
             if m := await retrieve(mosaic_id, include_tiles=True):
                 return m
+            else:
+                raise HTTPException(
+                    status.HTTP_404_NOT_FOUND,
+                    "Error: mosaic with given ID does not exist.",
+                )
 
         @self.router.post(
             "/mosaics",
@@ -114,32 +122,32 @@ class MosaicTilerFactory(factory.MosaicTilerFactory):
                 "requestBody": {
                     "content": {
                         "": {
-                            "schema": MosaicJSON.schema(
+                            "schema": MosaicJSON.model_json_schema(
                                 ref_template="#/components/schemas"
                             )
                         },
                         "application/json": {
-                            "schema": MosaicJSON.schema(
+                            "schema": MosaicJSON.model_json_schema(
                                 ref_template="#/components/schemas"
                             )
                         },
                         "application/json; charset=utf-8": {
-                            "schema": MosaicJSON.schema(
+                            "schema": MosaicJSON.model_json_schema(
                                 ref_template="#/components/schemas"
                             )
                         },
                         "application/vnd.titiler.mosaicjson+json": {
-                            "schema": MosaicJSON.schema(
+                            "schema": MosaicJSON.model_json_schema(
                                 ref_template="#/components/schemas"
                             )
                         },
                         "application/vnd.titiler.urls+json": {
-                            "schema": UrisRequestBody.schema(
+                            "schema": UrisRequestBody.model_json_schema(
                                 ref_template="#/components/schemas"
                             )
                         },
                         "application/vnd.titiler.stac-api-query+json": {
-                            "schema": StacApiQueryRequestBody.schema(
+                            "schema": StacApiQueryRequestBody.model_json_schema(
                                 ref_template="#/components/schemas"
                             )
                         },
@@ -178,71 +186,6 @@ class MosaicTilerFactory(factory.MosaicTilerFactory):
 
             return mk_mosaic_entity(mosaic_id, self_uri)
 
-        # @self.router.put(
-        #     "/mosaics/{mosaic_id}",
-        #     status_code=status.HTTP_204_NO_CONTENT,
-        #     responses={
-        #         status.HTTP_204_NO_CONTENT: {"description": "Updated a mosaic"},
-        #         status.HTTP_404_NOT_FOUND: {"description": "Mosaic with ID not found"},
-        #         status.HTTP_500_INTERNAL_SERVER_ERROR: {
-        #             "description": "Mosaic could not be updated"
-        #         },
-        #     },
-        # )
-        # async def put_mosaic(
-        #     request: Request,
-        #     mosaic_id: str = Path(..., description="MosaicId"),
-        #     content_type: Optional[str] = Header(None),
-        # ) -> None:
-        #     """Update an existing MosaicJSON"""
-        #     if not await retrieve(mosaic_id):
-        #         raise HTTPException(
-        #             status.HTTP_404_NOT_FOUND,
-        #             "Error: mosaic with given ID does not exist.",
-        #         )
-
-        #     try:
-        #         mosaicjson = await populate_mosaicjson(request, content_type)
-        #         await store(mosaic_id, mosaicjson, overwrite=True)
-
-        #     except StoreException:
-        #         raise HTTPException(
-        #             status.HTTP_404_NOT_FOUND,
-        #             "Error: mosaic with given ID does not exist.",
-        #         )
-
-        #     except Exception:
-        #         raise HTTPException(
-        #             status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #             "Error: could not update mosaic.",
-        #         )
-
-        #     return
-
-        # # note: cogeo-mosaic doesn't clear the cache on write/delete, so these will stay until the TTL expires
-        # # https://github.com/developmentseed/cogeo-mosaic/issues/176
-        # @self.router.delete(
-        #     "/mosaics/{mosaic_id}",
-        #     status_code=status.HTTP_204_NO_CONTENT,
-        # )
-        # async def delete_mosaic(
-        #     mosaic_id: str = Path(..., description="MosaicId")
-        # ) -> None:
-        #     """Delete an existing MosaicJSON"""
-        #     if not await retrieve(mosaic_id):
-        #         raise HTTPException(
-        #             status.HTTP_404_NOT_FOUND,
-        #             "Error: mosaic with given ID does not exist.",
-        #         )
-
-        #     try:
-        #         await delete(mosaic_id)
-        #     except UnsupportedOperationException:
-        #         raise HTTPException(
-        #             status.HTTP_405_METHOD_NOT_ALLOWED,
-        #             "Error: mosaic with given ID cannot be deleted because the datastore does not support it.",
-        #         )
-
         # derived from cogeo.xyz
         @self.router.get(
             "/mosaics/{mosaic_id}/tilejson.json",
@@ -270,7 +213,7 @@ class MosaicTilerFactory(factory.MosaicTilerFactory):
             maxzoom: Optional[int] = Query(
                 None, description="Overwrite default maxzoom."
             ),
-            layer_params=Depends(self.layer_dependency),  # noqa
+            layer_params=Depends(self.layer_dependency),
             dataset_params=Depends(self.dataset_dependency),  # noqa
             pixel_selection=Depends(self.pixel_selection_dependency),  # noqa
             post_process=Depends(self.process_dependency),  # noqa
@@ -503,13 +446,13 @@ class MosaicTilerFactory(factory.MosaicTilerFactory):
             tms = morecantile.tms.get("WebMercatorQuad")
 
             tileMatrix = []
-            for zoom in range(minzoom, maxzoom + 1):
+            for zoom in range(minzoom, maxzoom + 1):  # type: ignore
                 matrix = tms.matrix(zoom)
                 tm = f"""
                         <TileMatrix>
-                            <ows:Identifier>{matrix.identifier}</ows:Identifier>
+                            <ows:Identifier>{matrix.id}</ows:Identifier>
                             <ScaleDenominator>{matrix.scaleDenominator}</ScaleDenominator>
-                            <TopLeftCorner>{matrix.topLeftCorner[0]} {matrix.topLeftCorner[1]}</TopLeftCorner>
+                            <TopLeftCorner>{matrix.pointOfOrigin[0]} {matrix.pointOfOrigin[1]}</TopLeftCorner>
                             <TileWidth>{matrix.tileWidth}</TileWidth>
                             <TileHeight>{matrix.tileHeight}</TileHeight>
                             <MatrixWidth>{matrix.matrixWidth}</MatrixWidth>
