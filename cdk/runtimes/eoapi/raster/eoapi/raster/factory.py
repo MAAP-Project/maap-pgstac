@@ -7,10 +7,11 @@ import uuid
 from asyncio import wait_for
 from dataclasses import dataclass
 from functools import partial
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 from urllib.parse import urlencode
 
 import morecantile
+from pydantic import Field
 import rasterio
 from cogeo_mosaic.backends import DynamoDBBackend
 from cogeo_mosaic.errors import MosaicError
@@ -29,7 +30,7 @@ from titiler.core.resources.responses import JSONResponse, XMLResponse
 from titiler.mosaic import factory
 from titiler.mosaic.models.responses import Point
 
-from .models import (
+from eoapi.raster.models import (
     Link,
     MosaicEntity,
     StacApiQueryRequestBody,
@@ -38,7 +39,7 @@ from .models import (
     UnsupportedOperationException,
     UrisRequestBody,
 )
-from .settings import MosaicSettings
+from eoapi.raster.settings import MosaicSettings
 
 mosaic_config = MosaicSettings()
 
@@ -293,12 +294,16 @@ class MosaicTilerFactory(factory.MosaicTilerFactory):
             z: int = Path(..., ge=0, le=30, description="Mercator tiles's zoom level"),
             x: int = Path(..., description="Mercator tiles's column"),
             y: int = Path(..., description="Mercator tiles's row"),
-            scale: int = Query(
-                1, gt=0, lt=4, description="Tile size scale. 1=256x256, 2=512x512..."
-            ),
-            format: ImageType = Query(
-                None, description="Output image type. Default is auto."
-            ),
+            scale: Annotated[
+                int,
+                Field(
+                    gt=0, le=4, description="Tile size scale. 1=256x256, 2=512x512..."
+                ),
+            ] = 1,
+            format: Annotated[
+                ImageType,
+                "Default will be automatically defined if the output image needs a mask (png) or not (jpeg).",
+            ] = None,
             layer_params=Depends(self.layer_dependency),
             dataset_params=Depends(self.dataset_dependency),
             pixel_selection=Depends(self.pixel_selection_dependency),
