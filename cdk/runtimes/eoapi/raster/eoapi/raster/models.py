@@ -3,7 +3,7 @@
 import re
 from typing import List, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from stac_pydantic.api import Search
 
 
@@ -52,9 +52,9 @@ class StacApiQueryRequestBody(Search):
     # override default Search field for collections, which is List[str]
     collections: Optional[List[str]] = None
     # overriding limit so we can tell if it's defined or not
-    limit: Optional[int]
+    limit: Optional[int] = None
 
-    @validator("datetime")
+    @field_validator("datetime")
     def validate_datetime(cls, v):
         """
         datetime validation
@@ -77,14 +77,6 @@ class StacApiQueryRequestBody(Search):
                 )
             dates.append(value)
 
-        # this should get validated by the server anyway
-        # if ".." not in dates:
-        #     if datetime.strptime(dates[0], DATETIME_RFC339) > datetime.strptime(
-        #         dates[1], DATETIME_RFC339
-        #     ):
-        #         raise ValueError(
-        #             "Invalid datetime range, must match format (begin_date, end_date)"
-        #         )
         return v
 
 
