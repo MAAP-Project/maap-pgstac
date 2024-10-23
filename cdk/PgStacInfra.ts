@@ -95,7 +95,7 @@ export class PgStacInfra extends Stack {
 
     const titilerPgstacLambdaOptions: CustomLambdaFunctionProps = {
       code: lambda.Code.fromDockerBuild(__dirname, {
-        file: "runtimes/titiler-pgstac-api/Dockerfile",
+        file: "dockerfiles/Dockerfile.raster",
         buildArgs: { PYTHON_VERSION: "3.11" },
       }),
     };
