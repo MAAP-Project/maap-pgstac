@@ -23,9 +23,9 @@
     "typescript": "~3.9.7"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.45.0",
+    "aws-cdk-lib": "^2.130.0",
     "eoapi-cdk": "7.2.1",
-    "constructs": "^10.1.113",
+    "constructs": "^10.3.0",
     "source-map-support": "^0.5.16"
   }
 }

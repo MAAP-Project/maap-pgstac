@@ -1,11 +1,13 @@
 import {
   Stack,
   StackProps,
+  RemovalPolicy,
   aws_certificatemanager as acm,
   aws_iam as iam,
   aws_ec2 as ec2,
   aws_lambda as lambda,
   aws_rds as rds,
+  aws_s3 as s3,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import {
@@ -15,6 +17,7 @@ import {
   PgStacDatabase,
   StacIngestor,
   TitilerPgstacApiLambda,
+  StacBrowser,
 } from "eoapi-cdk";
 import { DomainName } from "@aws-cdk/aws-apigatewayv2-alpha";
 import { readFileSync } from "fs";
@@ -200,6 +203,34 @@ export class PgStacInfra extends Stack {
             }
           : undefined,
     });
+
+    // STAC Browser Infrastructure
+    const stacBrowserBucket = new s3.Bucket(this, 'Bucket', {
+      accessControl: s3.BucketAccessControl.PRIVATE,
+      removalPolicy: RemovalPolicy.DESTROY,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      enforceSSL: true,
+    })
+
+    new StacBrowser(this, "stac-browser", {
+      bucketArn: stacBrowserBucket.bucketArn,
+      stacCatalogUrl: stacApiLambda.url,
+      githubRepoTag: props.stacBrowserRepoTag,
+      websiteIndexDocument: "index.html",
+    })
+
+    stacBrowserBucket.addToResourcePolicy(new iam.PolicyStatement({
+      sid: 'AllowCloudFrontServicePrincipal',
+      effect: iam.Effect.ALLOW, 
+      actions: ['s3:GetObject'],
+      principals: [new iam.ServicePrincipal('cloudfront.amazonaws.com')],
+      resources: [stacBrowserBucket.arnForObjects('*')],
+      conditions: {
+          'StringEquals': {
+              'aws:SourceArn': props.stacBrowserDistributionArn,
+          }
+      }
+    }));
   }
 }
 
@@ -293,4 +324,16 @@ export interface Props extends StackProps {
    * Example: "stac-api.dit.maap-project.org""
    */
   stacApiCustomDomainName?: string | undefined;
+
+  /**
+   * Tag of the stac-browser repo from https://github.com/radiantearth/stac-browser
+   * Example: "v3.2.0"
+   */
+  stacBrowserRepoTag: string;
+
+  /**
+   * ARN of the CloudFront distribution for the STAC Browser
+   * Example: "arn:aws:cloudfront::123456789012:distribution/123456789012"
+   */
+  stacBrowserDistributionArn: string;
 }
