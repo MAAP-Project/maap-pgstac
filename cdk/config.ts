@@ -12,7 +12,6 @@ export class Config {
   readonly stacApiCustomDomainName: string | undefined;
   readonly titilerPgStacApiCustomDomainName: string | undefined;
   readonly stacBrowserRepoTag: string;
-  readonly stacBrowserDistributionArn: string;
 
   constructor() {
     // These are required environment variables and cannot be undefined
@@ -24,7 +23,6 @@ export class Config {
       { name: 'DB_ALLOCATED_STORAGE', value: process.env.DB_ALLOCATED_STORAGE },
       { name: 'MOSAIC_HOST', value: process.env.MOSAIC_HOST },
       { name: 'STAC_BROWSER_REPO_TAG', value: process.env.STAC_BROWSER_REPO_TAG },
-      { name: 'STAC_BROWSER_DISTRIBUTION_ARN', value: process.env.STAC_BROWSER_DISTRIBUTION_ARN },
     ];
 
     for (const variable of requiredVariables) {
@@ -40,7 +38,6 @@ export class Config {
     this.dbAllocatedStorage = Number(process.env.DB_ALLOCATED_STORAGE!);
     this.mosaicHost = process.env.MOSAIC_HOST!;
     this.stacBrowserRepoTag = process.env.STAC_BROWSER_REPO_TAG!;
-    this.stacBrowserDistributionArn = process.env.STAC_BROWSER_DISTRIBUTION_ARN!;
 
     this.version = process.env.npm_package_version!; // Set by node.js
     this.tags = {

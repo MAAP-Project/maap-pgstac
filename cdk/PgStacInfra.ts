@@ -1,4 +1,5 @@
 import {
+  Aws,
   Stack,
   StackProps,
   RemovalPolicy,
@@ -8,6 +9,8 @@ import {
   aws_lambda as lambda,
   aws_rds as rds,
   aws_s3 as s3,
+  aws_cloudfront as cloudfront,
+  aws_cloudfront_origins as origins,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import {
@@ -212,12 +215,19 @@ export class PgStacInfra extends Stack {
       enforceSSL: true,
     })
 
+    const stacBrowserOrigin = new cloudfront.Distribution(this, 'stacBrowserDistro', {
+      defaultBehavior: { origin: new origins.S3Origin(stacBrowserBucket) },
+    });
+
     new StacBrowser(this, "stac-browser", {
       bucketArn: stacBrowserBucket.bucketArn,
-      stacCatalogUrl: stacApiLambda.url,
+      stacCatalogUrl: stage === "test" ? "https://stac.dit.maap-project.org" : "https://stac.maap-project.org",
       githubRepoTag: props.stacBrowserRepoTag,
       websiteIndexDocument: "index.html",
     })
+
+    const accountId = Aws.ACCOUNT_ID;
+    const distributionArn = `arn:aws:cloudfront::${accountId}:distribution/${stacBrowserOrigin.distributionId}`;
 
     stacBrowserBucket.addToResourcePolicy(new iam.PolicyStatement({
       sid: 'AllowCloudFrontServicePrincipal',
@@ -227,7 +237,7 @@ export class PgStacInfra extends Stack {
       resources: [stacBrowserBucket.arnForObjects('*')],
       conditions: {
           'StringEquals': {
-              'aws:SourceArn': props.stacBrowserDistributionArn,
+              'aws:SourceArn': distributionArn,
           }
       }
     }));
@@ -330,10 +340,4 @@ export interface Props extends StackProps {
    * Example: "v3.2.0"
    */
   stacBrowserRepoTag: string;
-
-  /**
-   * ARN of the CloudFront distribution for the STAC Browser
-   * Example: "arn:aws:cloudfront::123456789012:distribution/123456789012"
-   */
-  stacBrowserDistributionArn: string;
 }
