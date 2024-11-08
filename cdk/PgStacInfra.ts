@@ -221,7 +221,7 @@ export class PgStacInfra extends Stack {
 
     new StacBrowser(this, "stac-browser", {
       bucketArn: stacBrowserBucket.bucketArn,
-      stacCatalogUrl: stage === "test" ? "https://stac.dit.maap-project.org" : "https://stac.maap-project.org",
+      stacCatalogUrl: props.stacApiCustomDomainName,
       githubRepoTag: props.stacBrowserRepoTag,
       websiteIndexDocument: "index.html",
     })
@@ -333,7 +333,7 @@ export interface Props extends StackProps {
    * Domain name to use for stac api. If defined, a new CDN will be created.
    * Example: "stac-api.dit.maap-project.org""
    */
-  stacApiCustomDomainName?: string | undefined;
+  stacApiCustomDomainName: string;
 
   /**
    * Tag of the stac-browser repo from https://github.com/radiantearth/stac-browser

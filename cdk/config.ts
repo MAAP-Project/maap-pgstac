@@ -9,7 +9,7 @@ export class Config {
   readonly mosaicHost: string;
   readonly certificateArn: string | undefined;
   readonly ingestorDomainName: string | undefined;
-  readonly stacApiCustomDomainName: string | undefined;
+  readonly stacApiCustomDomainName: string;
   readonly titilerPgStacApiCustomDomainName: string | undefined;
   readonly stacBrowserRepoTag: string;
 
@@ -23,6 +23,7 @@ export class Config {
       { name: 'DB_ALLOCATED_STORAGE', value: process.env.DB_ALLOCATED_STORAGE },
       { name: 'MOSAIC_HOST', value: process.env.MOSAIC_HOST },
       { name: 'STAC_BROWSER_REPO_TAG', value: process.env.STAC_BROWSER_REPO_TAG },
+      { name: 'STAC_API_CUSTOM_DOMAIN_NAME', value: process.env.STAC_API_CUSTOM_DOMAIN_NAME },
     ];
 
     for (const variable of requiredVariables) {
@@ -38,6 +39,7 @@ export class Config {
     this.dbAllocatedStorage = Number(process.env.DB_ALLOCATED_STORAGE!);
     this.mosaicHost = process.env.MOSAIC_HOST!;
     this.stacBrowserRepoTag = process.env.STAC_BROWSER_REPO_TAG!;
+    this.stacApiCustomDomainName = process.env.STAC_API_CUSTOM_DOMAIN_NAME!;
 
     this.version = process.env.npm_package_version!; // Set by node.js
     this.tags = {
@@ -53,7 +55,6 @@ export class Config {
     this.ingestorDomainName = process.env.INGESTOR_DOMAIN_NAME;
     this.titilerPgStacApiCustomDomainName =
       process.env.TITILER_PGSTAC_API_CUSTOM_DOMAIN_NAME;
-    this.stacApiCustomDomainName = process.env.STAC_API_CUSTOM_DOMAIN_NAME;
   }
 
   /**
