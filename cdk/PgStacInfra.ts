@@ -1,11 +1,16 @@
 import {
+  Aws,
   Stack,
   StackProps,
+  RemovalPolicy,
   aws_certificatemanager as acm,
   aws_iam as iam,
   aws_ec2 as ec2,
   aws_lambda as lambda,
   aws_rds as rds,
+  aws_s3 as s3,
+  aws_cloudfront as cloudfront,
+  aws_cloudfront_origins as origins,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import {
@@ -15,6 +20,7 @@ import {
   PgStacDatabase,
   StacIngestor,
   TitilerPgstacApiLambda,
+  StacBrowser,
 } from "eoapi-cdk";
 import { DomainName } from "@aws-cdk/aws-apigatewayv2-alpha";
 import { readFileSync } from "fs";
@@ -200,6 +206,41 @@ export class PgStacInfra extends Stack {
             }
           : undefined,
     });
+
+    // STAC Browser Infrastructure
+    const stacBrowserBucket = new s3.Bucket(this, 'Bucket', {
+      accessControl: s3.BucketAccessControl.PRIVATE,
+      removalPolicy: RemovalPolicy.DESTROY,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      enforceSSL: true,
+    })
+
+    const stacBrowserOrigin = new cloudfront.Distribution(this, 'stacBrowserDistro', {
+      defaultBehavior: { origin: new origins.S3Origin(stacBrowserBucket) },
+    });
+
+    new StacBrowser(this, "stac-browser", {
+      bucketArn: stacBrowserBucket.bucketArn,
+      stacCatalogUrl: props.stacApiCustomDomainName,
+      githubRepoTag: props.stacBrowserRepoTag,
+      websiteIndexDocument: "index.html",
+    })
+
+    const accountId = Aws.ACCOUNT_ID;
+    const distributionArn = `arn:aws:cloudfront::${accountId}:distribution/${stacBrowserOrigin.distributionId}`;
+
+    stacBrowserBucket.addToResourcePolicy(new iam.PolicyStatement({
+      sid: 'AllowCloudFrontServicePrincipal',
+      effect: iam.Effect.ALLOW, 
+      actions: ['s3:GetObject'],
+      principals: [new iam.ServicePrincipal('cloudfront.amazonaws.com')],
+      resources: [stacBrowserBucket.arnForObjects('*')],
+      conditions: {
+          'StringEquals': {
+              'aws:SourceArn': distributionArn,
+          }
+      }
+    }));
   }
 }
 
@@ -292,5 +333,11 @@ export interface Props extends StackProps {
    * Domain name to use for stac api. If defined, a new CDN will be created.
    * Example: "stac-api.dit.maap-project.org""
    */
-  stacApiCustomDomainName?: string | undefined;
+  stacApiCustomDomainName: string;
+
+  /**
+   * Tag of the stac-browser repo from https://github.com/radiantearth/stac-browser
+   * Example: "v3.2.0"
+   */
+  stacBrowserRepoTag: string;
 }

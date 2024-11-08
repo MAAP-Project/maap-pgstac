@@ -9,12 +9,38 @@ export class Config {
   readonly mosaicHost: string;
   readonly certificateArn: string | undefined;
   readonly ingestorDomainName: string | undefined;
-  readonly stacApiCustomDomainName: string | undefined;
+  readonly stacApiCustomDomainName: string;
   readonly titilerPgStacApiCustomDomainName: string | undefined;
+  readonly stacBrowserRepoTag: string;
 
   constructor() {
-    if (!process.env.STAGE) throw Error("Must provide STAGE");
-    this.stage = process.env.STAGE;
+    // These are required environment variables and cannot be undefined
+    const requiredVariables = [
+      { name: 'STAGE', value: process.env.STAGE },
+      { name: 'JWKS_URL', value: process.env.JWKS_URL },
+      { name: 'DATA_ACCESS_ROLE_ARN', value: process.env.DATA_ACCESS_ROLE_ARN },
+      { name: 'STAC_API_INTEGRATION_API_ARN', value: process.env.STAC_API_INTEGRATION_API_ARN },
+      { name: 'DB_ALLOCATED_STORAGE', value: process.env.DB_ALLOCATED_STORAGE },
+      { name: 'MOSAIC_HOST', value: process.env.MOSAIC_HOST },
+      { name: 'STAC_BROWSER_REPO_TAG', value: process.env.STAC_BROWSER_REPO_TAG },
+      { name: 'STAC_API_CUSTOM_DOMAIN_NAME', value: process.env.STAC_API_CUSTOM_DOMAIN_NAME },
+    ];
+
+    for (const variable of requiredVariables) {
+      if (!variable.value) {
+      throw new Error(`Must provide ${variable.name}`);
+      }
+    }
+
+    this.stage = process.env.STAGE!;
+    this.jwksUrl = process.env.JWKS_URL!;
+    this.dataAccessRoleArn = process.env.DATA_ACCESS_ROLE_ARN!;
+    this.stacApiIntegrationApiArn = process.env.STAC_API_INTEGRATION_API_ARN!;
+    this.dbAllocatedStorage = Number(process.env.DB_ALLOCATED_STORAGE!);
+    this.mosaicHost = process.env.MOSAIC_HOST!;
+    this.stacBrowserRepoTag = process.env.STAC_BROWSER_REPO_TAG!;
+    this.stacApiCustomDomainName = process.env.STAC_API_CUSTOM_DOMAIN_NAME!;
+
     this.version = process.env.npm_package_version!; // Set by node.js
     this.tags = {
       project: "MAAP",
@@ -24,25 +50,11 @@ export class Config {
       version: String(process.env.VERSION),
       stage: this.stage,
     };
-    if (!process.env.JWKS_URL) throw Error("Must provide JWKS_URL");
-    this.jwksUrl = process.env.JWKS_URL;
-    if (!process.env.DATA_ACCESS_ROLE_ARN)
-      throw Error("Must provide DATA_ACCESS_ROLE_ARN");
-    this.dataAccessRoleArn = process.env.DATA_ACCESS_ROLE_ARN!;
-    if (!process.env.STAC_API_INTEGRATION_API_ARN)
-      throw Error("Must provide STAC_API_INTEGRATION_API_ARN");
-    this.stacApiIntegrationApiArn = process.env.STAC_API_INTEGRATION_API_ARN!;
-    if (!process.env.DB_ALLOCATED_STORAGE)
-      throw Error("Must provide DB_ALLOCATED_STORAGE");
-    this.dbAllocatedStorage = Number(process.env.DB_ALLOCATED_STORAGE!);
-    if (!process.env.MOSAIC_HOST) throw Error("Must provide MOSAIC_HOST");
-    this.mosaicHost = process.env.MOSAIC_HOST!;
 
     this.certificateArn = process.env.CERTIFICATE_ARN;
     this.ingestorDomainName = process.env.INGESTOR_DOMAIN_NAME;
     this.titilerPgStacApiCustomDomainName =
       process.env.TITILER_PGSTAC_API_CUSTOM_DOMAIN_NAME;
-    this.stacApiCustomDomainName = process.env.STAC_API_CUSTOM_DOMAIN_NAME;
   }
 
   /**
