@@ -20,6 +20,7 @@ const {
   stacApiCustomDomainName,
   titilerPgStacApiCustomDomainName,
   stacBrowserRepoTag,
+  stacBrowserCustomDomainName,
 } = new Config();
 
 export const app = new cdk.App({});
@@ -55,4 +56,5 @@ new PgStacInfra(app, buildStackName("pgSTAC"), {
   stacApiCustomDomainName: stacApiCustomDomainName,
   titilerPgStacApiCustomDomainName: titilerPgStacApiCustomDomainName,
   stacBrowserRepoTag: stacBrowserRepoTag,
+  stacBrowserCustomDomainName: stacBrowserCustomDomainName,
 });
