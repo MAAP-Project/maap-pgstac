@@ -1,8 +1,4 @@
 import {
-  Aws,
-  Stack,
-  StackProps,
-  RemovalPolicy,
   aws_certificatemanager as acm,
   aws_iam as iam,
   aws_ec2 as ec2,
@@ -12,6 +8,7 @@ import {
   aws_cloudfront as cloudfront,
   aws_cloudfront_origins as origins,
 } from "aws-cdk-lib";
+import { Aws, Duration, RemovalPolicy, Stack, StackProps, Tags } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import {
   BastionHost,
@@ -42,6 +39,22 @@ export class PgStacInfra extends Stack {
       mosaicHost,
       titilerBucketsPath,
     } = props;
+
+    const maapLoggingBucket = new s3.Bucket(this, 'maapLoggingBucket', {
+      accessControl: s3.BucketAccessControl.PRIVATE,
+      removalPolicy: RemovalPolicy.DESTROY,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      bucketName: `maap-logging-${stage}`,
+      enforceSSL: true,
+      lifecycleRules: [
+        {
+          enabled: true,
+          expiration: Duration.days(90),
+        },
+      ],
+    })
+    Tags.of(maapLoggingBucket).add("Name", maapLoggingBucket.bucketName);
+    Tags.of(maapLoggingBucket).add("Owner", "MAAP Data Team");
 
     const { db, pgstacSecret } = new PgStacDatabase(this, "pgstac-db", {
       vpc,
@@ -208,15 +221,28 @@ export class PgStacInfra extends Stack {
     });
 
     // STAC Browser Infrastructure
-    const stacBrowserBucket = new s3.Bucket(this, 'Bucket', {
+    const stacBrowserBucket = new s3.Bucket(this, 'stacBrowserBucket', {
       accessControl: s3.BucketAccessControl.PRIVATE,
       removalPolicy: RemovalPolicy.DESTROY,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      bucketName: `maap-stac-browser-${stage}`,
       enforceSSL: true,
     })
+    Tags.of(stacBrowserBucket).add("Name", stacBrowserBucket.bucketName);
+    Tags.of(stacBrowserBucket).add("Owner", "MAAP Data Team");
 
     const stacBrowserOrigin = new cloudfront.Distribution(this, 'stacBrowserDistro', {
       defaultBehavior: { origin: new origins.S3Origin(stacBrowserBucket) },
+      defaultRootObject: 'index.html',
+      domainNames: [props.stacBrowserCustomDomainName],
+      certificate: props.certificateArn ? acm.Certificate.fromCertificateArn(
+        this,
+        "stacBrowserCustomDomainNameCertificate",
+        props.certificateArn,
+      ) : undefined,
+      enableLogging: true,
+      logBucket: maapLoggingBucket,
+      logFilePrefix: 'stac-browser',
     });
 
     new StacBrowser(this, "stac-browser", {
@@ -340,4 +366,10 @@ export interface Props extends StackProps {
    * Example: "v3.2.0"
    */
   stacBrowserRepoTag: string;
+
+  /**
+   * Domain name for use in cloudfront distribution for stac-browser
+   * Example: "stac-browser.maap-project.org"
+   */
+  stacBrowserCustomDomainName: string;
 }
