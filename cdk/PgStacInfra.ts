@@ -244,6 +244,9 @@ export class PgStacInfra extends Stack {
       logBucket: maapLoggingBucket,
       logFilePrefix: 'stac-browser',
     });
+    // Add dependencies for the Cloudfront distribution
+    stacBrowserOrigin.node.addDependency(stacBrowserBucket);
+    stacBrowserOrigin.node.addDependency(maapLoggingBucket);
 
     new StacBrowser(this, "stac-browser", {
       bucketArn: stacBrowserBucket.bucketArn,
