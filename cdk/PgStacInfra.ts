@@ -235,11 +235,11 @@ export class PgStacInfra extends Stack {
       defaultBehavior: { origin: new origins.S3Origin(stacBrowserBucket) },
       defaultRootObject: 'index.html',
       domainNames: [props.stacBrowserCustomDomainName],
-      certificate: props.certificateArn ? acm.Certificate.fromCertificateArn(
+      certificate: acm.Certificate.fromCertificateArn(
         this,
         "stacBrowserCustomDomainNameCertificate",
-        props.certificateArn,
-      ) : undefined,
+        props.stacBrowserCertificateArn,
+      ),
       enableLogging: true,
       logBucket: maapLoggingBucket,
       logFilePrefix: 'stac-browser',
@@ -372,4 +372,10 @@ export interface Props extends StackProps {
    * Example: "stac-browser.maap-project.org"
    */
   stacBrowserCustomDomainName: string;
+
+  /**
+   * ARN of ACM certificate to use for Cloudfront Distribution (Must be us-east-1).
+   * Example: "arn:aws:acm:us-west-2:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+   */
+  stacBrowserCertificateArn: string;
 }

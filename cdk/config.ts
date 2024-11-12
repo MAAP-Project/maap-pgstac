@@ -13,6 +13,7 @@ export class Config {
   readonly titilerPgStacApiCustomDomainName: string | undefined;
   readonly stacBrowserRepoTag: string;
   readonly stacBrowserCustomDomainName: string;
+  readonly stacBrowserCertificateArn: string;
 
   constructor() {
     // These are required environment variables and cannot be undefined
@@ -25,6 +26,7 @@ export class Config {
       { name: 'MOSAIC_HOST', value: process.env.MOSAIC_HOST },
       { name: 'STAC_BROWSER_REPO_TAG', value: process.env.STAC_BROWSER_REPO_TAG },
       { name: 'STAC_BROWSER_CUSTOM_DOMAIN_NAME', value: process.env.STAC_BROWSER_CUSTOM_DOMAIN_NAME },
+      { name: 'STAC_BROWSER_CERTIFICATE_ARN', value: process.env.STAC_BROWSER_CERTIFICATE_ARN },
       { name: 'STAC_API_CUSTOM_DOMAIN_NAME', value: process.env.STAC_API_CUSTOM_DOMAIN_NAME },
     ];
 
@@ -42,6 +44,7 @@ export class Config {
     this.mosaicHost = process.env.MOSAIC_HOST!;
     this.stacBrowserRepoTag = process.env.STAC_BROWSER_REPO_TAG!;
     this.stacBrowserCustomDomainName = process.env.STAC_BROWSER_CUSTOM_DOMAIN_NAME!;
+    this.stacBrowserCertificateArn = process.env.STAC_BROWSER_CERTIFICATE_ARN!;
     this.stacApiCustomDomainName = process.env.STAC_API_CUSTOM_DOMAIN_NAME!;
 
     this.version = process.env.npm_package_version!; // Set by node.js
