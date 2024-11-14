@@ -243,7 +243,8 @@ export class PgStacInfra extends Stack {
     
     new StacBrowser(this, "stac-browser", {
       bucketArn: stacBrowserBucket.bucketArn,
-      stacCatalogUrl: `https://${props.stacApiCustomDomainName}/`,
+      stacCatalogUrl: props.stacApiCustomDomainName.startsWith('https://') ? 
+        props.stacApiCustomDomainName : `https://${props.stacApiCustomDomainName}/`,
       githubRepoTag: props.stacBrowserRepoTag,
       websiteIndexDocument: "index.html",
     });
