@@ -41,7 +41,7 @@ export class PgStacInfra extends Stack {
     } = props;
 
     const maapLoggingBucket = new s3.Bucket(this, 'maapLoggingBucket', {
-      accessControl: s3.BucketAccessControl.PRIVATE,
+      accessControl: s3.BucketAccessControl.LOG_DELIVERY_WRITE,
       removalPolicy: RemovalPolicy.DESTROY,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       bucketName: `maap-logging-${stage}`,
@@ -52,9 +52,7 @@ export class PgStacInfra extends Stack {
           expiration: Duration.days(90),
         },
       ],
-    })
-    Tags.of(maapLoggingBucket).add("Name", maapLoggingBucket.bucketName);
-    Tags.of(maapLoggingBucket).add("Owner", "MAAP Data Team");
+    });
 
     const { db, pgstacSecret } = new PgStacDatabase(this, "pgstac-db", {
       vpc,
@@ -227,9 +225,7 @@ export class PgStacInfra extends Stack {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       bucketName: `maap-stac-browser-${stage}`,
       enforceSSL: true,
-    })
-    Tags.of(stacBrowserBucket).add("Name", stacBrowserBucket.bucketName);
-    Tags.of(stacBrowserBucket).add("Owner", "MAAP Data Team");
+    });
 
     const stacBrowserOrigin = new cloudfront.Distribution(this, 'stacBrowserDistro', {
       defaultBehavior: { origin: new origins.S3Origin(stacBrowserBucket) },
@@ -244,16 +240,13 @@ export class PgStacInfra extends Stack {
       logBucket: maapLoggingBucket,
       logFilePrefix: 'stac-browser',
     });
-    // Add dependencies for the Cloudfront distribution
-    stacBrowserOrigin.node.addDependency(stacBrowserBucket);
-    stacBrowserOrigin.node.addDependency(maapLoggingBucket);
-
+    
     new StacBrowser(this, "stac-browser", {
       bucketArn: stacBrowserBucket.bucketArn,
-      stacCatalogUrl: props.stacApiCustomDomainName,
+      stacCatalogUrl: `https://${props.stacApiCustomDomainName}/`,
       githubRepoTag: props.stacBrowserRepoTag,
       websiteIndexDocument: "index.html",
-    })
+    });
 
     const accountId = Aws.ACCOUNT_ID;
     const distributionArn = `arn:aws:cloudfront::${accountId}:distribution/${stacBrowserOrigin.distributionId}`;
@@ -265,10 +258,23 @@ export class PgStacInfra extends Stack {
       principals: [new iam.ServicePrincipal('cloudfront.amazonaws.com')],
       resources: [stacBrowserBucket.arnForObjects('*')],
       conditions: {
-          'StringEquals': {
-              'aws:SourceArn': distributionArn,
-          }
+        'StringEquals': {
+          'aws:SourceArn': distributionArn,
+        }
       }
+    }));
+
+    maapLoggingBucket.addToResourcePolicy(new iam.PolicyStatement({
+      sid: 'AllowCloudFrontServicePrincipal',
+      effect: iam.Effect.ALLOW,
+      actions: ['s3:PutObject'],
+      resources: [maapLoggingBucket.arnForObjects('AWSLogs/*')],
+      principals: [new iam.ServicePrincipal('cloudfront.amazonaws.com')],
+      conditions: {
+        'StringEquals': {
+          'aws:SourceArn': distributionArn, 
+        }, 
+      }, 
     }));
   }
 }
