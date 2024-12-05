@@ -194,7 +194,7 @@ export class PgBouncer extends Construct {
       'echo "\\"$DB_USER\\" \\"$DB_PASSWORD\\"" > /etc/pgbouncer/userlist.txt',
 
       "# Set correct permissions",
-      "chown pgbouncer:pgbouncer /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt",
+      "chown postgres:postgres /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt",
       "chmod 600 /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt",
 
       "# Restart pgbouncer",
