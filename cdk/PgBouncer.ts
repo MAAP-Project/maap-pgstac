@@ -151,7 +151,6 @@ export class PgBouncer extends Construct {
       "DEBIAN_FRONTEND=noninteractive apt-get install -y pgbouncer jq awscli",
 
       // Create update script
-      "cat <<'EOF' > /usr/local/bin/update-pgbouncer-config.sh",
       "#!/bin/bash",
       "set -euxo pipefail",
 
@@ -199,11 +198,6 @@ export class PgBouncer extends Construct {
 
       "# Restart pgbouncer",
       "systemctl restart pgbouncer",
-      "EOF",
-
-      // Make script executable and run it
-      "chmod +x /usr/local/bin/update-pgbouncer-config.sh",
-      "/usr/local/bin/update-pgbouncer-config.sh",
 
       // Enable and start pgbouncer service
       "systemctl enable pgbouncer",
