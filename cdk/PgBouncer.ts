@@ -5,6 +5,7 @@ import {
   Stack,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
+import { GenericLinuxImage } from "aws-cdk-lib/aws-ec2";
 
 export interface PgBouncerProps {
   /**
@@ -67,7 +68,7 @@ export class PgBouncer extends Construct {
       usePublicSubnet = false,
       instanceType = ec2.InstanceType.of(
         ec2.InstanceClass.T3,
-        ec2.InstanceSize.SMALL,
+        ec2.InstanceSize.NANO,
       ),
       pgBouncerConfig = {
         poolMode: "transaction",
@@ -131,9 +132,10 @@ export class PgBouncer extends Construct {
           : ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       instanceType,
-      machineImage: new ec2.AmazonLinuxImage({
-        generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
-      }),
+      machineImage: ec2.MachineImage.fromSsmParameter(
+        "/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id",
+        { os: ec2.OperatingSystemType.LINUX },
+      ),
       securityGroup: this.securityGroup,
       role,
     });
@@ -141,8 +143,8 @@ export class PgBouncer extends Construct {
     // Create user data script
     const userDataScript = ec2.UserData.forLinux();
     userDataScript.addCommands(
-      "yum update -y",
-      "yum install -y pgbouncer jq aws-cli",
+      "apt-get update",
+      "apt-get install -y pgbouncer jq awscli",
       // Create configuration update script
       `cat <<EOF > /usr/local/bin/update-pgbouncer-config.sh
 #!/bin/bash
