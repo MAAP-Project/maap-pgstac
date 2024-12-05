@@ -175,7 +175,7 @@ export class PgBouncer extends Construct {
       "* = host=$DB_HOST port=$DB_PORT dbname=$DB_NAME",
       "",
       "[pgbouncer]",
-      "listen_addr = '*'",
+      "listen_addr = 0.0.0.0",
       "listen_port = 5432",
       "auth_type = md5",
       "auth_file = /etc/pgbouncer/userlist.txt",
@@ -187,6 +187,7 @@ export class PgBouncer extends Construct {
       `reserve_pool_timeout = ${pgBouncerConfig.reservePoolTimeout}`,
       `max_db_connections = ${pgBouncerConfig.maxDbConnections}`,
       `max_user_connections = ${pgBouncerConfig.maxUserConnections}`,
+      "ignore_startup_parameters = application_name,search_path",
       "EOC",
 
       "# Create userlist.txt",
