@@ -132,6 +132,7 @@ export class PgBouncer extends Construct {
           : ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
       instanceType,
+      instanceName: `pgbouncer-${Date.now()}`,
       machineImage: ec2.MachineImage.fromSsmParameter(
         "/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id",
         { os: ec2.OperatingSystemType.LINUX },
@@ -143,56 +144,68 @@ export class PgBouncer extends Construct {
     // Create user data script
     const userDataScript = ec2.UserData.forLinux();
     userDataScript.addCommands(
+      "set -euxo pipefail", // Add error handling and debugging
+
+      // Install required packages
       "apt-get update",
-      "apt-get install -y pgbouncer jq awscli",
-      // Create configuration update script
-      `cat <<EOF > /usr/local/bin/update-pgbouncer-config.sh
-#!/bin/bash
-SECRET_ARN="${database.secret.secretArn}"
-REGION="${Stack.of(this).region}"
+      "DEBIAN_FRONTEND=noninteractive apt-get install -y pgbouncer jq awscli",
 
-# Fetch secret
-SECRET=\$(aws secretsmanager get-secret-value --secret-id \$SECRET_ARN --region \$REGION --query SecretString --output text)
+      // Create update script
+      "cat <<'EOF' > /usr/local/bin/update-pgbouncer-config.sh",
+      "#!/bin/bash",
+      "set -euxo pipefail",
 
-# Parse values
-DB_HOST=\$(echo \$SECRET | jq -r '.host')
-DB_PORT=\$(echo \$SECRET | jq -r '.port')
-DB_NAME=\$(echo \$SECRET | jq -r '.dbname')
-DB_USER=\$(echo \$SECRET | jq -r '.username')
-DB_PASSWORD=\$(echo \$SECRET | jq -r '.password')
+      `SECRET_ARN=${database.secret.secretArn}`,
+      `REGION=${Stack.of(this).region}`,
 
-# Create pgbouncer config
-cat <<EOC > /etc/pgbouncer/pgbouncer.ini
-[databases]
-* = host=\$DB_HOST port=\$DB_PORT dbname=\$DB_NAME
+      "echo 'Fetching secret from ARN: ' ${SECRET_ARN}",
+      "SECRET=$(aws secretsmanager get-secret-value --secret-id $SECRET_ARN --region $REGION --query SecretString --output text)",
 
-[pgbouncer]
-listen_addr = *
-listen_port = 5432
-auth_type = md5
-auth_file = /etc/pgbouncer/userlist.txt
-pool_mode = ${pgBouncerConfig.poolMode}
-max_client_conn = ${pgBouncerConfig.maxClientConn}
-default_pool_size = ${pgBouncerConfig.defaultPoolSize}
-min_pool_size = ${pgBouncerConfig.minPoolSize}
-reserve_pool_size = ${pgBouncerConfig.reservePoolSize}
-reserve_pool_timeout = ${pgBouncerConfig.reservePoolTimeout}
-max_db_connections = ${pgBouncerConfig.maxDbConnections}
-max_user_connections = ${pgBouncerConfig.maxUserConnections}
-EOC
+      "# Parse database credentials",
+      "DB_HOST=$(echo $SECRET | jq -r '.host')",
+      "DB_PORT=$(echo $SECRET | jq -r '.port')",
+      "DB_NAME=$(echo $SECRET | jq -r '.dbname')",
+      "DB_USER=$(echo $SECRET | jq -r '.username')",
+      "DB_PASSWORD=$(echo $SECRET | jq -r '.password')",
 
-# Create auth file
-echo "\\"$DB_USER\\" \\"$DB_PASSWORD\\"" > /etc/pgbouncer/userlist.txt
+      "echo 'Creating PgBouncer configuration...'",
 
-# Set permissions
-chown pgbouncer:pgbouncer /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt
-chmod 600 /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt
+      "# Create pgbouncer.ini",
+      "cat <<EOC > /etc/pgbouncer/pgbouncer.ini",
+      "[databases]",
+      "* = host=$DB_HOST port=$DB_PORT dbname=$DB_NAME",
+      "",
+      "[pgbouncer]",
+      "listen_addr = '*'",
+      "listen_port = 5432",
+      "auth_type = md5",
+      "auth_file = /etc/pgbouncer/userlist.txt",
+      `pool_mode = ${pgBouncerConfig.poolMode}`,
+      `max_client_conn = ${pgBouncerConfig.maxClientConn}`,
+      `default_pool_size = ${pgBouncerConfig.defaultPoolSize}`,
+      `min_pool_size = ${pgBouncerConfig.minPoolSize}`,
+      `reserve_pool_size = ${pgBouncerConfig.reservePoolSize}`,
+      `reserve_pool_timeout = ${pgBouncerConfig.reservePoolTimeout}`,
+      `max_db_connections = ${pgBouncerConfig.maxDbConnections}`,
+      `max_user_connections = ${pgBouncerConfig.maxUserConnections}`,
+      "EOC",
 
-# Restart pgbouncer
-systemctl restart pgbouncer
-EOF`,
+      "# Create userlist.txt",
+      'echo "\\"$DB_USER\\" \\"$DB_PASSWORD\\"" > /etc/pgbouncer/userlist.txt',
+
+      "# Set correct permissions",
+      "chown pgbouncer:pgbouncer /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt",
+      "chmod 600 /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt",
+
+      "# Restart pgbouncer",
+      "systemctl restart pgbouncer",
+      "EOF",
+
+      // Make script executable and run it
       "chmod +x /usr/local/bin/update-pgbouncer-config.sh",
       "/usr/local/bin/update-pgbouncer-config.sh",
+
+      // Enable and start pgbouncer service
       "systemctl enable pgbouncer",
       "systemctl start pgbouncer",
     );
