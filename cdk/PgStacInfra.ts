@@ -200,7 +200,7 @@ export class PgStacInfra extends Stack {
       clientSecurityGroups: [titilerLambdaSecurityGroup],
       usePublicSubnet: props.dbSubnetPublic,
       pgBouncerConfig: {
-        poolMode: "session",
+        poolMode: "transaction",
         maxClientConn: 1000,
         defaultPoolSize: 20,
         minPoolSize: 10,

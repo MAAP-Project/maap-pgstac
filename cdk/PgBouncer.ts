@@ -187,12 +187,9 @@ export class PgBouncer extends Construct {
       "chown postgres:postgres /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt",
       "chmod 600 /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt",
 
-      "# Restart pgbouncer",
-      "systemctl restart pgbouncer",
-
       // Enable and start pgbouncer service
       "systemctl enable pgbouncer",
-      "systemctl start pgbouncer",
+      "systemctl restart pgbouncer",
 
       // Health check
       "# Create health check script",
