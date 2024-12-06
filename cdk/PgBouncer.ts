@@ -112,6 +112,9 @@ export class PgBouncer extends Construct {
         iam.ManagedPolicy.fromAwsManagedPolicyName(
           "AmazonSSMManagedInstanceCore",
         ),
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          "CloudWatchAgentServerPolicy",
+        ),
       ],
     });
 
@@ -139,6 +142,17 @@ export class PgBouncer extends Construct {
       ),
       securityGroup: this.securityGroup,
       role,
+      detailedMonitoring: true, // Enable detailed CloudWatch monitoring
+      blockDevices: [
+        {
+          deviceName: "/dev/xvda",
+          volume: ec2.BlockDeviceVolume.ebs(20, {
+            volumeType: ec2.EbsDeviceVolumeType.GP3,
+            encrypted: true,
+            deleteOnTermination: true,
+          }),
+        },
+      ],
     });
 
     // Create user data script
@@ -146,13 +160,13 @@ export class PgBouncer extends Construct {
     userDataScript.addCommands(
       "set -euxo pipefail", // Add error handling and debugging
 
+      // add the postgres repository
+      "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -",
+      "sudo sh -c 'echo \"deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main\" > /etc/apt/sources.list.d/pgdg.list'",
+
       // Install required packages
       "apt-get update",
       "DEBIAN_FRONTEND=noninteractive apt-get install -y pgbouncer jq awscli",
-
-      // Create update script
-      "#!/bin/bash",
-      "set -euxo pipefail",
 
       `SECRET_ARN=${database.secret.secretArn}`,
       `REGION=${Stack.of(this).region}`,
@@ -203,6 +217,84 @@ export class PgBouncer extends Construct {
       // Enable and start pgbouncer service
       "systemctl enable pgbouncer",
       "systemctl start pgbouncer",
+
+      // Health check
+      "# Create health check script",
+      "cat <<EOC > /usr/local/bin/check-pgbouncer.sh",
+      "#!/bin/bash",
+      "if ! pgrep pgbouncer > /dev/null; then",
+      "    systemctl start pgbouncer",
+      "    echo 'PgBouncer was down, restarted'",
+      "fi",
+      "EOC",
+      "chmod +x /usr/local/bin/check-pgbouncer.sh",
+
+      "# Add to crontab",
+      "(crontab -l 2>/dev/null; echo '* * * * * /usr/local/bin/check-pgbouncer.sh') | crontab -",
+
+      // CloudWatch
+      "# Install CloudWatch agent",
+      "wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb",
+      "dpkg -i amazon-cloudwatch-agent.deb",
+
+      "# Create CloudWatch agent configuration",
+      "cat <<EOC > /opt/aws/amazon-cloudwatch-agent/bin/config.json",
+      "{",
+      '  "agent": {',
+      '    "metrics_collection_interval": 60,',
+      '    "run_as_user": "root"',
+      "  },",
+      '  "logs": {',
+      '    "logs_collected": {',
+      '      "files": {',
+      '        "collect_list": [',
+      "          {",
+      '            "file_path": "/var/log/pgbouncer/pgbouncer.log",',
+      '            "log_group_name": "/pgbouncer/logs",',
+      '            "log_stream_name": "{instance_id}",',
+      '            "timestamp_format": "%Y-%m-%d %H:%M:%S"',
+      "          }",
+      "        ]",
+      "      }",
+      "    }",
+      "  },",
+      '  "metrics": {',
+      '    "metrics_collected": {',
+      '      "procstat": [',
+      "        {",
+      '          "pattern": "pgbouncer",',
+      '          "measurement": [',
+      '            "cpu_usage",',
+      '            "memory_rss",',
+      '            "read_bytes",',
+      '            "write_bytes"',
+      "          ]",
+      "        }",
+      "      ]",
+      "    }",
+      "  }",
+      "}",
+      "EOC",
+
+      "# Start CloudWatch agent",
+      "/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json",
+      "systemctl enable amazon-cloudwatch-agent",
+      "systemctl start amazon-cloudwatch-agent",
+
+      // PgBouncer metrics
+      "# Create PgBouncer metrics script",
+      "cat <<EOC > /usr/local/bin/pgbouncer-metrics.sh",
+      "#!/bin/bash",
+      "PGPASSWORD=$DB_PASSWORD psql -h localhost -p 5432 -U $DB_USER pgbouncer -c 'SHOW POOLS;' | \\",
+      'awk \'NR>2 {print "pgbouncer_pool,database=" $1 " cl_active=" $3 ",cl_waiting=" $4 ",sv_active=" $5 ",sv_idle=" $6 ",sv_used=" $7 ",sv_tested=" $8 ",sv_login=" $9 ",maxwait=" $10}\' | \\',
+      "while IFS= read -r line; do",
+      '    aws cloudwatch put-metric-data --namespace PgBouncer --metric-name "$line" --region $REGION',
+      "done",
+      "EOC",
+      "chmod +x /usr/local/bin/pgbouncer-metrics.sh",
+
+      "# Add to crontab",
+      "(crontab -l 2>/dev/null; echo '* * * * * /usr/local/bin/pgbouncer-metrics.sh') | crontab -",
     );
 
     this.instance.addUserData(userDataScript.render());
