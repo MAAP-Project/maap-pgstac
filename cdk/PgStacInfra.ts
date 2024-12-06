@@ -190,7 +190,8 @@ export class PgStacInfra extends Stack {
         .securityGroupId,
     );
 
-    const pgBouncer = new PgBouncer(this, "PgBouncer", {
+    const pgBouncer = new PgBouncer(this, "pgbouncer", {
+      instanceName: `pgbouncer-${stage}`,
       vpc: props.vpc,
       database: {
         connections: db.connections,

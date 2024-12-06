@@ -2,12 +2,18 @@ import {
   aws_ec2 as ec2,
   aws_iam as iam,
   aws_secretsmanager as secretsmanager,
+  CfnResource,
   Stack,
 } from "aws-cdk-lib";
+import * as crypto from "crypto";
 import { Construct } from "constructs";
-import { GenericLinuxImage } from "aws-cdk-lib/aws-ec2";
 
 export interface PgBouncerProps {
+  /**
+   * Name for the pgbouncer instance
+   */
+  instanceName: string;
+
   /**
    * VPC to deploy PgBouncer into
    */
@@ -57,6 +63,18 @@ export class PgBouncer extends Construct {
   public readonly securityGroup: ec2.ISecurityGroup;
   public readonly instance: ec2.Instance;
   public readonly endpoint: string;
+
+  private calculateUserDataHash(userDataScript: ec2.UserData): string {
+    // Get the rendered user data script
+    const userData = userDataScript.render();
+
+    // Calculate hash of the user data
+    return crypto
+      .createHash("sha256")
+      .update(userData)
+      .digest("hex")
+      .substring(0, 8); // Use first 8 characters of hash
+  }
 
   constructor(scope: Construct, id: string, props: PgBouncerProps) {
     super(scope, id);
@@ -125,35 +143,6 @@ export class PgBouncer extends Construct {
         resources: [database.secret.secretArn],
       }),
     );
-
-    // Create PgBouncer instance
-    this.instance = new ec2.Instance(this, "Instance", {
-      vpc,
-      vpcSubnets: {
-        subnetType: usePublicSubnet
-          ? ec2.SubnetType.PUBLIC
-          : ec2.SubnetType.PRIVATE_WITH_EGRESS,
-      },
-      instanceType,
-      instanceName: `pgbouncer-${Date.now()}`,
-      machineImage: ec2.MachineImage.fromSsmParameter(
-        "/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id",
-        { os: ec2.OperatingSystemType.LINUX },
-      ),
-      securityGroup: this.securityGroup,
-      role,
-      detailedMonitoring: true, // Enable detailed CloudWatch monitoring
-      blockDevices: [
-        {
-          deviceName: "/dev/xvda",
-          volume: ec2.BlockDeviceVolume.ebs(20, {
-            volumeType: ec2.EbsDeviceVolumeType.GP3,
-            encrypted: true,
-            deleteOnTermination: true,
-          }),
-        },
-      ],
-    });
 
     // Create user data script
     const userDataScript = ec2.UserData.forLinux();
@@ -297,7 +286,49 @@ export class PgBouncer extends Construct {
       "(crontab -l 2>/dev/null; echo '* * * * * /usr/local/bin/pgbouncer-metrics.sh') | crontab -",
     );
 
-    this.instance.addUserData(userDataScript.render());
+    const userDataHash = this.calculateUserDataHash(userDataScript);
+
+    // Create PgBouncer instance
+    this.instance = new ec2.Instance(this, "Instance", {
+      vpc,
+      vpcSubnets: {
+        subnetType: usePublicSubnet
+          ? ec2.SubnetType.PUBLIC
+          : ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      instanceType,
+      instanceName: `pgbouncer-${Date.now()}`,
+      machineImage: ec2.MachineImage.fromSsmParameter(
+        "/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id",
+        { os: ec2.OperatingSystemType.LINUX },
+      ),
+      securityGroup: this.securityGroup,
+      role,
+      detailedMonitoring: true, // Enable detailed CloudWatch monitoring
+      blockDevices: [
+        {
+          deviceName: "/dev/xvda",
+          volume: ec2.BlockDeviceVolume.ebs(20, {
+            volumeType: ec2.EbsDeviceVolumeType.GP3,
+            encrypted: true,
+            deleteOnTermination: true,
+          }),
+        },
+      ],
+      userData: userDataScript,
+    });
+
+    const replacementTrigger = new CfnResource(
+      this,
+      "InstanceReplacementTrigger",
+      {
+        type: "Custom::InstanceReplacementTrigger",
+        properties: {
+          UserDataHash: userDataHash,
+        },
+      },
+    );
+    this.instance.node.addDependency(replacementTrigger);
 
     // Set the endpoint
     this.endpoint = this.instance.instancePrivateIp;
