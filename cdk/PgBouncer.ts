@@ -2,10 +2,8 @@ import {
   aws_ec2 as ec2,
   aws_iam as iam,
   aws_secretsmanager as secretsmanager,
-  CfnResource,
   Stack,
 } from "aws-cdk-lib";
-import * as crypto from "crypto";
 import { Construct } from "constructs";
 
 export interface PgBouncerProps {
@@ -63,18 +61,6 @@ export class PgBouncer extends Construct {
   public readonly securityGroup: ec2.ISecurityGroup;
   public readonly instance: ec2.Instance;
   public readonly endpoint: string;
-
-  private calculateUserDataHash(userDataScript: ec2.UserData): string {
-    // Get the rendered user data script
-    const userData = userDataScript.render();
-
-    // Calculate hash of the user data
-    return crypto
-      .createHash("sha256")
-      .update(userData)
-      .digest("hex")
-      .substring(0, 8); // Use first 8 characters of hash
-  }
 
   constructor(scope: Construct, id: string, props: PgBouncerProps) {
     super(scope, id);
@@ -155,6 +141,7 @@ export class PgBouncer extends Construct {
 
       // Install required packages
       "apt-get update",
+      "sleep 5",
       "DEBIAN_FRONTEND=noninteractive apt-get install -y pgbouncer jq awscli",
 
       `SECRET_ARN=${database.secret.secretArn}`,
@@ -286,7 +273,24 @@ export class PgBouncer extends Construct {
       "(crontab -l 2>/dev/null; echo '* * * * * /usr/local/bin/pgbouncer-metrics.sh') | crontab -",
     );
 
-    const userDataHash = this.calculateUserDataHash(userDataScript);
+    // ensure the init script gets run on every boot
+    userDataScript.addCommands(
+      // Create a per-boot script
+      "mkdir -p /var/lib/cloud/scripts/per-boot",
+
+      "cat <<'EOF' > /var/lib/cloud/scripts/per-boot/00-run-config.sh",
+      "#!/bin/bash",
+      "# Stop existing services",
+      "systemctl stop pgbouncer",
+
+      "# Re-run configuration",
+      "curl -o /tmp/user-data http://169.254.169.254/latest/user-data",
+      "chmod +x /tmp/user-data",
+      "/tmp/user-data",
+      "EOF",
+
+      "chmod +x /var/lib/cloud/scripts/per-boot/00-run-config.sh",
+    );
 
     // Create PgBouncer instance
     this.instance = new ec2.Instance(this, "Instance", {
@@ -316,19 +320,8 @@ export class PgBouncer extends Construct {
         },
       ],
       userData: userDataScript,
+      userDataCausesReplacement: true,
     });
-
-    const replacementTrigger = new CfnResource(
-      this,
-      "InstanceReplacementTrigger",
-      {
-        type: "Custom::InstanceReplacementTrigger",
-        properties: {
-          UserDataHash: userDataHash,
-        },
-      },
-    );
-    this.instance.node.addDependency(replacementTrigger);
 
     // Set the endpoint
     this.endpoint = this.instance.instancePrivateIp;
