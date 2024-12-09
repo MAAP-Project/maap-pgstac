@@ -57,7 +57,7 @@ max_db_connections = ${MAX_DB_CONNECTIONS}
 max_user_connections = ${MAX_USER_CONNECTIONS}
 ignore_startup_parameters = application_name,search_path
 logfile = /var/log/pgbouncer/pgbouncer.log
-pid_file = /var/run/pgbouncer/pgbouncer.pid
+pidfile = /var/run/pgbouncer/pgbouncer.pid
 admin_users = $DB_USER
 stats_users = $DB_USER
 log_connections = 1
@@ -79,14 +79,19 @@ set -x
 chown postgres:postgres /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt
 chmod 600 /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt
 
-# Enable and start pgbouncer service
-systemctl enable pgbouncer
-systemctl restart pgbouncer
-
 # Configure logging
 mkdir -p /var/log/pgbouncer /var/run/pgbouncer
 chown postgres:postgres /var/log/pgbouncer /var/run/pgbouncer
 chmod 755 /var/log/pgbouncer /var/run/pgbouncer
+
+touch /var/log/pgbouncer/pgbouncer.log
+chown postgres:postgres /var/log/pgbouncer/pgbouncer.log
+chmod 640 /var/log/pgbouncer/pgbouncer.log
+
+# Enable and start pgbouncer service
+systemctl enable pgbouncer
+systemctl restart pgbouncer
+
 
 cat <<EOC > /etc/logrotate.d/pgbouncer
 /var/log/pgbouncer/pgbouncer.log {
