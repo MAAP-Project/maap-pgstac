@@ -23,23 +23,17 @@ sleep 5
 DEBIAN_FRONTEND=noninteractive apt-get install -y pgbouncer jq awscli
 
 echo "Fetching secret from ARN: ${SECRET_ARN}"
-SECRET=$(aws secretsmanager get-secret-value --secret-id ${SECRET_ARN} --region ${REGION} --query SecretString --output text)
 
 # Before handling secrets, turn off command tracing
 set +x
-
-# Create a read-only file descriptor for sensitive operations
-exec 3<<< "$SECRET"
+SECRET=$(aws secretsmanager get-secret-value --secret-id ${SECRET_ARN} --region ${REGION} --query SecretString --output text)
 
 # Parse database credentials without echoing
-DB_HOST=$(jq -r '.host' <&3)
-DB_PORT=$(jq -r '.port' <&3)
-DB_NAME=$(jq -r '.dbname' <&3)
-DB_USER=$(jq -r '.username' <&3)
-DB_PASSWORD=$(jq -r '.password' <&3)
-
-# Close the file descriptor
-exec 3<&-
+DB_HOST=$(echo "$SECRET" | jq -r '.host')
+DB_PORT=$(echo "$SECRET" | jq -r '.port')
+DB_NAME=$(echo "$SECRET" | jq -r '.dbname')
+DB_USER=$(echo "$SECRET" | jq -r '.username')
+DB_PASSWORD=$(echo "$SECRET" | jq -r '.password')
 
 echo 'Creating PgBouncer configuration...'
 
