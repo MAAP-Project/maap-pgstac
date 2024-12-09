@@ -75,7 +75,7 @@ export class PgBouncer extends Construct {
       usePublicSubnet = false,
       instanceType = ec2.InstanceType.of(
         ec2.InstanceClass.T3,
-        ec2.InstanceSize.NANO,
+        ec2.InstanceSize.MICRO,
       ),
       pgBouncerConfig = {
         poolMode: "transaction",
