@@ -12,6 +12,7 @@ RESERVE_POOL_SIZE=${RESERVE_POOL_SIZE}
 RESERVE_POOL_TIMEOUT=${RESERVE_POOL_TIMEOUT}
 MAX_DB_CONNECTIONS=${MAX_DB_CONNECTIONS}
 MAX_USER_CONNECTIONS=${MAX_USER_CONNECTIONS}
+CLOUDWATCH_CONFIG="/opt/aws/amazon-cloudwatch-agent/bin/config.json"
 
 # Add the postgres repository
 curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
@@ -55,6 +56,7 @@ reserve_pool_size = ${RESERVE_POOL_SIZE}
 reserve_pool_timeout = ${RESERVE_POOL_TIMEOUT}
 max_db_connections = ${MAX_DB_CONNECTIONS}
 max_user_connections = ${MAX_USER_CONNECTIONS}
+max_prepared_statements = 10
 ignore_startup_parameters = application_name,search_path
 logfile = /var/log/pgbouncer/pgbouncer.log
 pidfile = /var/run/pgbouncer/pgbouncer.pid
@@ -167,7 +169,7 @@ if ! dpkg -i amazon-cloudwatch-agent.deb; then
 fi
 
 # Create CloudWatch config
-cat <<EOC > /opt/aws/amazon-cloudwatch-agent/bin/config.json
+cat <<EOC > ${CLOUDWATCH_CONFIG}
 {
   "agent": {
     "metrics_collection_interval": 60,
@@ -208,7 +210,7 @@ cat <<EOC > /opt/aws/amazon-cloudwatch-agent/bin/config.json
             "write_bytes",
             "read_count",
             "write_count",
-            "open_fd"
+            "num_fds"
           ]
         }
       ],
@@ -229,13 +231,13 @@ cat <<EOC > /opt/aws/amazon-cloudwatch-agent/bin/config.json
 EOC
 
 # Verify the config file exists
-if [ ! -f /opt/pgbouncer/cloudwatch/config.json ]; then
+if [ ! -f ${CLOUDWATCH_CONFIG} ]; then
     echo 'CloudWatch config file not created' | logger -t pgbouncer-setup
     exit 1
 fi
 
 # Start CloudWatch agent
-if ! /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/pgbouncer/cloudwatch/config.json; then
+if ! /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:${CLOUDWATCH_CONFIG}; then
     echo 'Failed to configure CloudWatch agent' | logger -t pgbouncer-setup
     exit 1
 fi

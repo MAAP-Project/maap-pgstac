@@ -79,13 +79,13 @@ export class PgBouncer extends Construct {
       ),
       pgBouncerConfig = {
         poolMode: "transaction",
-        maxClientConn: 1000,
-        defaultPoolSize: 20,
-        minPoolSize: 10,
+        maxClientConn: 200,
+        defaultPoolSize: 5,
+        minPoolSize: 0,
         reservePoolSize: 5,
         reservePoolTimeout: 5,
-        maxDbConnections: 50,
-        maxUserConnections: 50,
+        maxDbConnections: 40,
+        maxUserConnections: 40,
       },
     } = props;
 
