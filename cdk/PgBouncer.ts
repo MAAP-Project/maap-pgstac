@@ -1,6 +1,5 @@
 import {
   aws_ec2 as ec2,
-  aws_iam as iam,
   aws_secretsmanager as secretsmanager,
   Stack,
 } from "aws-cdk-lib";
@@ -56,7 +55,6 @@ export interface PgBouncerProps {
 }
 
 export class PgBouncer extends Construct {
-  public readonly securityGroup: ec2.ISecurityGroup;
   public readonly instance: ec2.Instance;
   public readonly endpoint: string;
 
@@ -83,41 +81,6 @@ export class PgBouncer extends Construct {
       },
     } = props;
 
-    // Create security group for PgBouncer
-    this.securityGroup = new ec2.SecurityGroup(this, "SecurityGroup", {
-      vpc,
-      description: "Security group for PgBouncer instance",
-      allowAllOutbound: true,
-    });
-
-    // Allow PgBouncer to connect to RDS
-    database.connections.allowFrom(
-      this.securityGroup,
-      ec2.Port.tcp(5432),
-      "Allow PgBouncer to connect to RDS",
-    );
-
-    // Create role for PgBouncer instance
-    const role = new iam.Role(this, "InstanceRole", {
-      assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName(
-          "AmazonSSMManagedInstanceCore",
-        ),
-        iam.ManagedPolicy.fromAwsManagedPolicyName(
-          "CloudWatchAgentServerPolicy",
-        ),
-      ],
-    });
-
-    // Add policy to allow reading RDS credentials from Secrets Manager
-    role.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ["secretsmanager:GetSecretValue"],
-        resources: [database.secret.secretArn],
-      }),
-    );
-
     // Create PgBouncer instance
     this.instance = new ec2.Instance(this, "Instance", {
       vpc,
@@ -132,8 +95,6 @@ export class PgBouncer extends Construct {
         "/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id",
         { os: ec2.OperatingSystemType.LINUX },
       ),
-      securityGroup: this.securityGroup,
-      role,
       detailedMonitoring: true,
       blockDevices: [
         {
@@ -148,6 +109,16 @@ export class PgBouncer extends Construct {
       userData: this.loadUserDataScript(pgBouncerConfig, database),
       userDataCausesReplacement: true,
     });
+
+    // Grant read access to database secret
+    props.database.secret.grantRead(this.instance);
+
+    // Allow PgBouncer to connect to RDS
+    database.connections.allowFrom(
+      this.instance,
+      ec2.Port.tcp(5432),
+      "Allow PgBouncer to connect to RDS",
+    );
 
     // Set the endpoint
     this.endpoint = this.instance.instancePrivateIp;
