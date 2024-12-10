@@ -20,7 +20,15 @@ sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)
 
 # Install required packages
 apt-get update
-sleep 5
+
+wait_for_dpkg_lock() {
+  while fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1; do
+    echo "Waiting for dpkg lock to be released..."
+    sleep 2
+  done
+}
+
+wait_for_dpkg_lock
 DEBIAN_FRONTEND=noninteractive apt-get install -y pgbouncer jq awscli
 
 echo "Fetching secret from ARN: ${SECRET_ARN}"
