@@ -166,7 +166,7 @@ chmod +x /var/lib/cloud/scripts/per-boot/00-run-config.sh
 mkdir -p /opt/pgbouncer/cloudwatch
 
 # Install CloudWatch agent
-if ! wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb; then
+if ! wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb; then
     echo 'Failed to download CloudWatch agent' | logger -t pgbouncer-setup
     exit 1
 fi
