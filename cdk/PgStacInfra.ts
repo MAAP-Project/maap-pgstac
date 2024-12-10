@@ -62,6 +62,7 @@ export class PgStacInfra extends Stack {
       ],
     });
 
+    // Pgstac Database
     const { db, pgstacSecret } = new PgStacDatabase(this, "pgstac-db", {
       vpc,
       allowMajorVersionUpgrade: true,
@@ -81,6 +82,7 @@ export class PgStacInfra extends Stack {
           : ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.SMALL),
     });
 
+    // PgBouncer
     const pgBouncer = new PgBouncer(this, "pgbouncer", {
       instanceName: `pgbouncer-${stage}`,
       vpc: props.vpc,
@@ -107,6 +109,7 @@ export class PgStacInfra extends Stack {
         : ec2.SubnetType.PRIVATE_WITH_EGRESS,
     };
 
+    // STAC API
     const stacApiLambda = new PgStacApiLambda(this, "pgstac-api", {
       apiEnv: {
         NAME: `MAAP STAC API (${stage})`,
@@ -135,6 +138,7 @@ export class PgStacInfra extends Stack {
       sourceArn: props.stacApiIntegrationApiArn,
     });
 
+    // titiler-pgstac
     const fileContents = readFileSync(titilerBucketsPath, "utf8");
     const buckets = load(fileContents) as string[];
 
@@ -203,7 +207,7 @@ export class PgStacInfra extends Stack {
       titilerPgstacApi.titilerPgstacLambdaFunction.addToRolePolicy(permission);
     });
 
-    // Configure for pgbouncer
+    // Configure titiler-pgstac for pgbouncer
     titilerPgstacApi.titilerPgstacLambdaFunction.connections.allowTo(
       pgBouncer.instance,
       ec2.Port.tcp(5432),
@@ -215,6 +219,7 @@ export class PgStacInfra extends Stack {
       pgBouncer.endpoint,
     );
 
+    // STAC Ingestor
     new BastionHost(this, "bastion-host", {
       vpc,
       db,
