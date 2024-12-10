@@ -63,6 +63,12 @@ export class PgStacInfra extends Stack {
     });
 
     // Pgstac Database
+    // set instance type to t3.micro if stage is test, otherwise t3.small
+    const dbInstanceType =
+      stage === "test"
+        ? ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO)
+        : ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.SMALL);
+
     const { db, pgstacSecret } = new PgStacDatabase(this, "pgstac-db", {
       vpc,
       allowMajorVersionUpgrade: true,
@@ -75,14 +81,27 @@ export class PgStacInfra extends Stack {
           : ec2.SubnetType.PRIVATE_ISOLATED,
       },
       allocatedStorage: allocatedStorage,
-      // set instance type to t3.micro if stage is test, otherwise t3.small
-      instanceType:
-        stage === "test"
-          ? ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO)
-          : ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.SMALL),
+      instanceType: dbInstanceType,
     });
 
     // PgBouncer
+    // total RDS instance memory mapping
+    const instanceMemoryMapMb: Record<string, number> = {
+      "t3.micro": 1024,
+      "t3.small": 2048,
+      "t3.medium": 4096,
+    };
+
+    // Available memory is total instance memory minus some constant for OS overhead (~300?)
+    const memoryInBytes =
+      (instanceMemoryMapMb[dbInstanceType.toString()] - 300) * 1024 ** 2;
+
+    // Max connections for pgbouncer should be the instance max_connections minus 10
+    const maxPgBouncerDbConnections = Math.min(
+      Math.round(memoryInBytes / 9531392) - 10,
+      5000,
+    );
+
     const pgBouncer = new PgBouncer(this, "pgbouncer", {
       instanceName: `pgbouncer-${stage}`,
       vpc: props.vpc,
@@ -98,8 +117,8 @@ export class PgStacInfra extends Stack {
         minPoolSize: 10,
         reservePoolSize: 5,
         reservePoolTimeout: 5,
-        maxDbConnections: 50,
-        maxUserConnections: 50,
+        maxDbConnections: maxPgBouncerDbConnections,
+        maxUserConnections: maxPgBouncerDbConnections,
       },
     });
 
