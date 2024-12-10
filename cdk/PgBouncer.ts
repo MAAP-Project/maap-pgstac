@@ -29,11 +29,6 @@ export interface PgBouncerProps {
   };
 
   /**
-   * Security groups that need access to PgBouncer
-   */
-  clientSecurityGroups: ec2.ISecurityGroup[];
-
-  /**
    * Whether to deploy in public subnet
    * @default false
    */
@@ -71,7 +66,6 @@ export class PgBouncer extends Construct {
     const {
       vpc,
       database,
-      clientSecurityGroups,
       usePublicSubnet = false,
       instanceType = ec2.InstanceType.of(
         ec2.InstanceClass.T3,
@@ -94,15 +88,6 @@ export class PgBouncer extends Construct {
       vpc,
       description: "Security group for PgBouncer instance",
       allowAllOutbound: true,
-    });
-
-    // Allow incoming PostgreSQL traffic from client security groups
-    clientSecurityGroups.forEach((clientSg, index) => {
-      this.securityGroup.addIngressRule(
-        clientSg,
-        ec2.Port.tcp(5432),
-        `Allow PostgreSQL access from client security group ${index + 1}`,
-      );
     });
 
     // Allow PgBouncer to connect to RDS

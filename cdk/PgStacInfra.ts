@@ -81,6 +81,26 @@ export class PgStacInfra extends Stack {
           : ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.SMALL),
     });
 
+    const pgBouncer = new PgBouncer(this, "pgbouncer", {
+      instanceName: `pgbouncer-${stage}`,
+      vpc: props.vpc,
+      database: {
+        connections: db.connections,
+        secret: pgstacSecret,
+      },
+      usePublicSubnet: props.dbSubnetPublic,
+      pgBouncerConfig: {
+        poolMode: "transaction",
+        maxClientConn: 1000,
+        defaultPoolSize: 20,
+        minPoolSize: 10,
+        reservePoolSize: 5,
+        reservePoolTimeout: 5,
+        maxDbConnections: 50,
+        maxUserConnections: 50,
+      },
+    });
+
     const apiSubnetSelection: ec2.SubnetSelection = {
       subnetType: props.dbSubnetPublic
         ? ec2.SubnetType.PUBLIC
@@ -183,33 +203,12 @@ export class PgStacInfra extends Stack {
       titilerPgstacApi.titilerPgstacLambdaFunction.addToRolePolicy(permission);
     });
 
-    const titilerLambdaSecurityGroup = ec2.SecurityGroup.fromSecurityGroupId(
-      this,
-      "TitilerLambdaSG",
-      titilerPgstacApi.titilerPgstacLambdaFunction.connections.securityGroups[0]
-        .securityGroupId,
+    // Configure for pgbouncer
+    titilerPgstacApi.titilerPgstacLambdaFunction.connections.allowTo(
+      pgBouncer.instance,
+      ec2.Port.tcp(5432),
+      "allow connections from titiler",
     );
-
-    const pgBouncer = new PgBouncer(this, "pgbouncer", {
-      instanceName: `pgbouncer-${stage}`,
-      vpc: props.vpc,
-      database: {
-        connections: db.connections,
-        secret: pgstacSecret,
-      },
-      clientSecurityGroups: [titilerLambdaSecurityGroup],
-      usePublicSubnet: props.dbSubnetPublic,
-      pgBouncerConfig: {
-        poolMode: "transaction",
-        maxClientConn: 1000,
-        defaultPoolSize: 20,
-        minPoolSize: 10,
-        reservePoolSize: 5,
-        reservePoolTimeout: 5,
-        maxDbConnections: 50,
-        maxUserConnections: 50,
-      },
-    });
 
     titilerPgstacApi.titilerPgstacLambdaFunction.addEnvironment(
       "PGBOUNCER_HOST",
