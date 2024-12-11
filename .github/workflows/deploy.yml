@@ -51,6 +51,7 @@ jobs:
         JWKS_URL: ${{ steps.import-stacks-vars-to-output.outputs.JWKS_URL }}
         DATA_ACCESS_ROLE_ARN: ${{ steps.import-stacks-vars-to-output.outputs.DATA_ACCESS_ROLE_ARN }}
         DB_ALLOCATED_STORAGE: ${{ vars.DB_ALLOCATED_STORAGE }}
+        DB_INSTANCE_TYPE: ${{ vars.DB_INSTANCE_TYPE }}
         GIT_REPOSITORY: ${{ github.repository}}
         COMMIT_SHA: ${{ github.sha }}
         AUTHOR: ${{ github.actor }}

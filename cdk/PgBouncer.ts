@@ -9,6 +9,8 @@ import { Construct } from "constructs";
 import * as fs from "fs";
 import * as path from "path";
 
+// used to populate pgbouncer config:
+// see https://www.pgbouncer.org/config.html for details
 export interface PgBouncerConfigProps {
   poolMode?: "transaction" | "session" | "statement";
   maxClientConn?: number;
@@ -97,6 +99,8 @@ export class PgBouncer extends Construct {
     // calculate approximate max_connections setting for this RDS instance type
     const maxConnections = this.calculateMaxConnections(dbInstanceType);
 
+    // maxDbConnections (and maxUserConnections) are the only settings that need
+    // to be responsive to the database size/max_connections setting
     return {
       poolMode: "transaction",
       maxClientConn: 1000,
