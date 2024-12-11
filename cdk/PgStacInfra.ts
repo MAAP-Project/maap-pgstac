@@ -8,14 +8,7 @@ import {
   aws_cloudfront as cloudfront,
   aws_cloudfront_origins as origins,
 } from "aws-cdk-lib";
-import {
-  Aws,
-  Duration,
-  RemovalPolicy,
-  Stack,
-  StackProps,
-  Tags,
-} from "aws-cdk-lib";
+import { Aws, Duration, RemovalPolicy, Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import {
   BastionHost,
@@ -80,27 +73,11 @@ export class PgStacInfra extends Stack {
     });
 
     // PgBouncer
-    // total RDS instance memory mapping
-    const instanceMemoryMapMb: Record<string, number> = {
-      "t3.micro": 1024,
-      "t3.small": 2048,
-      "t3.medium": 4096,
-    };
-
-    // Available memory is total instance memory minus some constant for OS overhead (~300?)
-    const memoryInBytes =
-      (instanceMemoryMapMb[dbInstanceType.toString()] - 300) * 1024 ** 2;
-
-    // Max connections for pgbouncer should be the instance max_connections minus 10
-    const maxPgBouncerDbConnections = Math.min(
-      Math.round(memoryInBytes / 9531392) - 10,
-      5000,
-    );
-
     const pgBouncer = new PgBouncer(this, "pgbouncer", {
       instanceName: `pgbouncer-${stage}`,
       vpc: props.vpc,
       database: {
+        instanceType: dbInstanceType,
         connections: db.connections,
         secret: pgstacSecret,
       },
@@ -112,8 +89,6 @@ export class PgStacInfra extends Stack {
         minPoolSize: 10,
         reservePoolSize: 5,
         reservePoolTimeout: 5,
-        maxDbConnections: maxPgBouncerDbConnections,
-        maxUserConnections: maxPgBouncerDbConnections,
       },
     });
 
@@ -361,6 +336,11 @@ export interface Props extends StackProps {
    * to services running.
    */
   version: string;
+
+  /**
+   * RDS Instance type
+   */
+  dbInstanceType: ec2.InstanceType;
 
   /**
    * Flag to control whether database should be deployed into a

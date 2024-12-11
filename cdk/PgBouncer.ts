@@ -9,6 +9,17 @@ import { Construct } from "constructs";
 import * as fs from "fs";
 import * as path from "path";
 
+export interface PgBouncerConfigProps {
+  poolMode?: "transaction" | "session" | "statement";
+  maxClientConn?: number;
+  defaultPoolSize?: number;
+  minPoolSize?: number;
+  reservePoolSize?: number;
+  reservePoolTimeout?: number;
+  maxDbConnections?: number;
+  maxUserConnections?: number;
+}
+
 export interface PgBouncerProps {
   /**
    * Name for the pgbouncer instance
@@ -24,6 +35,7 @@ export interface PgBouncerProps {
    * The RDS instance to connect to
    */
   database: {
+    instanceType: ec2.InstanceType;
     connections: ec2.Connections;
     secret: secretsmanager.ISecret;
   };
@@ -36,51 +48,84 @@ export interface PgBouncerProps {
 
   /**
    * Instance type for PgBouncer
-   * @default t3.small
+   * @default t3.micro
    */
   instanceType?: ec2.InstanceType;
 
   /**
    * PgBouncer configuration options
    */
-  pgBouncerConfig: {
-    poolMode: "transaction" | "session" | "statement";
-    maxClientConn: number;
-    defaultPoolSize: number;
-    minPoolSize: number;
-    reservePoolSize: number;
-    reservePoolTimeout: number;
-    maxDbConnections: number;
-    maxUserConnections: number;
-  };
+  pgBouncerConfig?: PgBouncerConfigProps;
 }
 
 export class PgBouncer extends Construct {
   public readonly instance: ec2.Instance;
   public readonly endpoint: string;
 
+  // The max_connections parameter in PgBouncer determines the maximum number of
+  // connections to open on the actual database instance. We want that number to
+  // be slightly smaller than the actual max_connections value on the RDS instance
+  // so we perform this calculation.
+
+  // TODO: move this to eoapi-cdk where we already have a complete map of instance
+  // type and memory
+  private readonly instanceMemoryMapMb: Record<string, number> = {
+    "t3.micro": 1024,
+    "t3.small": 2048,
+    "t3.medium": 4096,
+  };
+
+  private calculateMaxConnections(dbInstanceType: ec2.InstanceType): number {
+    const memoryMb = this.instanceMemoryMapMb[dbInstanceType.toString()];
+    if (!memoryMb) {
+      throw new Error(
+        `Unsupported instance type: ${dbInstanceType.toString()}`,
+      );
+    }
+
+    // RDS calculates the available memory as the total instance memory minus some
+    // constant for OS overhead
+    const memoryInBytes = (memoryMb - 300) * 1024 ** 2;
+
+    // The default max_connections setting follows this formula:
+    return Math.min(Math.round(memoryInBytes / 9531392), 5000);
+  }
+
+  private getDefaultConfig(
+    dbInstanceType: ec2.InstanceType,
+  ): Required<PgBouncerConfigProps> {
+    // calculate approximate max_connections setting for this RDS instance type
+    const maxConnections = this.calculateMaxConnections(dbInstanceType);
+
+    return {
+      poolMode: "transaction",
+      maxClientConn: 1000,
+      defaultPoolSize: 5,
+      minPoolSize: 0,
+      reservePoolSize: 5,
+      reservePoolTimeout: 5,
+      maxDbConnections: maxConnections - 10,
+      maxUserConnections: maxConnections - 10,
+    };
+  }
+
   constructor(scope: Construct, id: string, props: PgBouncerProps) {
     super(scope, id);
 
-    const {
-      vpc,
-      database,
-      usePublicSubnet = false,
-      instanceType = ec2.InstanceType.of(
-        ec2.InstanceClass.T3,
-        ec2.InstanceSize.MICRO,
-      ),
-      pgBouncerConfig = {
-        poolMode: "transaction",
-        maxClientConn: 200,
-        defaultPoolSize: 5,
-        minPoolSize: 0,
-        reservePoolSize: 5,
-        reservePoolTimeout: 5,
-        maxDbConnections: 40,
-        maxUserConnections: 40,
-      },
-    } = props;
+    // Set defaults for optional props
+    const defaultInstanceType = ec2.InstanceType.of(
+      ec2.InstanceClass.T3,
+      ec2.InstanceSize.MICRO,
+    );
+
+    const instanceType = props.instanceType ?? defaultInstanceType;
+    const defaultConfig = this.getDefaultConfig(props.database.instanceType);
+
+    // Merge provided config with defaults
+    const pgBouncerConfig: Required<PgBouncerConfigProps> = {
+      ...defaultConfig,
+      ...props.pgBouncerConfig,
+    };
 
     // Create role for PgBouncer instance to enable writing to CloudWatch
     const role = new iam.Role(this, "InstanceRole", {
@@ -99,15 +144,15 @@ export class PgBouncer extends Construct {
     role.addToPolicy(
       new iam.PolicyStatement({
         actions: ["secretsmanager:GetSecretValue"],
-        resources: [database.secret.secretArn],
+        resources: [props.database.secret.secretArn],
       }),
     );
 
     // Create PgBouncer instance
     this.instance = new ec2.Instance(this, "Instance", {
-      vpc,
+      vpc: props.vpc,
       vpcSubnets: {
-        subnetType: usePublicSubnet
+        subnetType: props.usePublicSubnet
           ? ec2.SubnetType.PUBLIC
           : ec2.SubnetType.PRIVATE_WITH_EGRESS,
       },
@@ -118,7 +163,6 @@ export class PgBouncer extends Construct {
         { os: ec2.OperatingSystemType.LINUX },
       ),
       role,
-      detailedMonitoring: true,
       blockDevices: [
         {
           deviceName: "/dev/xvda",
@@ -129,12 +173,12 @@ export class PgBouncer extends Construct {
           }),
         },
       ],
-      userData: this.loadUserDataScript(pgBouncerConfig, database),
+      userData: this.loadUserDataScript(pgBouncerConfig, props.database),
       userDataCausesReplacement: true,
     });
 
     // Allow PgBouncer to connect to RDS
-    database.connections.allowFrom(
+    props.database.connections.allowFrom(
       this.instance,
       ec2.Port.tcp(5432),
       "Allow PgBouncer to connect to RDS",
