@@ -8,6 +8,7 @@ import { PgStacInfra } from "./PgStacInfra";
 const {
   stage,
   version,
+  dbInstanceType,
   buildStackName,
   tags,
   jwksUrl,
@@ -21,7 +22,7 @@ const {
   titilerPgStacApiCustomDomainName,
   stacBrowserRepoTag,
   stacBrowserCustomDomainName,
-  stacBrowserCertificateArn
+  stacBrowserCertificateArn,
 } = new Config();
 
 export const app = new cdk.App({});
@@ -38,6 +39,7 @@ new PgStacInfra(app, buildStackName("pgSTAC"), {
   stage,
   version,
   jwksUrl,
+  dbInstanceType,
   terminationProtection: false,
   bastionIpv4AllowList: [
     "66.17.119.38/32", // Jamison

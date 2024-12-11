@@ -41,6 +41,7 @@ export class PgStacInfra extends Stack {
       vpc,
       stage,
       version,
+      dbInstanceType,
       jwksUrl,
       dataAccessRoleArn,
       allocatedStorage,
@@ -63,12 +64,6 @@ export class PgStacInfra extends Stack {
     });
 
     // Pgstac Database
-    // set instance type to t3.micro if stage is test, otherwise t3.small
-    const dbInstanceType =
-      stage === "test"
-        ? ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO)
-        : ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.SMALL);
-
     const { db, pgstacSecret } = new PgStacDatabase(this, "pgstac-db", {
       vpc,
       allowMajorVersionUpgrade: true,
