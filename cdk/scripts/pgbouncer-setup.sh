@@ -91,6 +91,11 @@ chown postgres:postgres /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt
 chmod 600 /etc/pgbouncer/pgbouncer.ini /etc/pgbouncer/userlist.txt
 
 # Configure logging
+# ensure /var/run/pgbouncer gets created on boot
+cat <<EOC > /etc/tmpfiles.d/pgbouncer.conf
+d /var/run/pgbouncer 0755 postgres postgres -
+EOC
+
 mkdir -p /var/log/pgbouncer /var/run/pgbouncer
 chown postgres:postgres /var/log/pgbouncer /var/run/pgbouncer
 chmod 755 /var/log/pgbouncer /var/run/pgbouncer
