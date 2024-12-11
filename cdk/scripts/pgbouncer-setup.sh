@@ -21,6 +21,7 @@ sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)
 # Install required packages
 apt-get update
 
+# Function that makes sure we don't hit a dpkg lock error
 wait_for_dpkg_lock() {
   while fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1; do
     echo "Waiting for dpkg lock to be released..."
@@ -119,61 +120,52 @@ EOC
 mkdir -p /opt/pgbouncer/scripts
 
 # Create the health check script
-cat <<'EOC' > /opt/pgbouncer/scripts/check-pgbouncer.sh
+cat <<'EOC' > /opt/pgbouncer/scripts/check.sh
 #!/bin/bash
-if ! pgrep pgbouncer > /dev/null; then
-    systemctl start pgbouncer
-    echo 'PgBouncer was down, restarted' | logger -t pgbouncer-monitor
+echo $(/bin/systemctl is-active pgbouncer)
+if ! /bin/systemctl is-active --quiet pgbouncer; then
+  # If it's not active, attempt to start it
+  echo "$(date): PgBouncer is not running, attempting to restart" | logger -t pgbouncer-monitor
+  /bin/systemctl start pgbouncer
+
+  # Check if the restart was successful
+  if /bin/systemctl is-active --quiet pgbouncer; then
+    echo "$(date): PgBouncer successfully restarted" | logger -t pgbouncer-monitor
+  else
+    echo "$(date): Failed to restart PgBouncer" | logger -t pgbouncer-monitor
+  fi
+else
+  # If it's already active, no action is needed
+  echo "$(date): PgBouncer is running; no action needed" | logger -t pgbouncer-monitor
 fi
 EOC
-chmod +x /opt/pgbouncer/scripts/check-pgbouncer.sh
+chmod +x /opt/pgbouncer/scripts/check.sh
 
-# Create a single crontab file
+# enable cron job
 cat <<'EOC' > /opt/pgbouncer/scripts/crontab.txt
 # PgBouncer health check - run every minute
-* * * * * /opt/pgbouncer/scripts/check-pgbouncer.sh
-# PgBouncer metrics collection - run every minute
-* * * * * /opt/pgbouncer/scripts/pgbouncer-metrics.sh
+* * * * * /opt/pgbouncer/scripts/check.sh
 EOC
 
-# Install the crontab as the root user
 crontab /opt/pgbouncer/scripts/crontab.txt
 
-# Verify the crontab was installed
 if ! crontab -l; then
-    echo 'Failed to install crontab' | logger -t pgbouncer-setup
-    exit 1
+  echo 'Failed to install crontab' | logger -t pgbouncer-setup
+  exit 1
 fi
-
-# Create per-boot script directory
-mkdir -p /var/lib/cloud/scripts/per-boot
-
-# Create per-boot script
-cat <<'EOF' > /var/lib/cloud/scripts/per-boot/00-run-config.sh
-#!/bin/bash
-# Stop existing services
-systemctl stop pgbouncer
-
-# Re-run configuration
-curl -o /tmp/user-data http://169.254.169.254/latest/user-data
-chmod +x /tmp/user-data
-/tmp/user-data
-EOF
-
-chmod +x /var/lib/cloud/scripts/per-boot/00-run-config.sh
 
 # Create CloudWatch configuration directory
 mkdir -p /opt/pgbouncer/cloudwatch
 
 # Install CloudWatch agent
 if ! wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb; then
-    echo 'Failed to download CloudWatch agent' | logger -t pgbouncer-setup
-    exit 1
+  echo 'Failed to download CloudWatch agent' | logger -t pgbouncer-setup
+  exit 1
 fi
 
 if ! dpkg -i amazon-cloudwatch-agent.deb; then
-    echo 'Failed to install CloudWatch agent' | logger -t pgbouncer-setup
-    exit 1
+  echo 'Failed to install CloudWatch agent' | logger -t pgbouncer-setup
+  exit 1
 fi
 
 # Create CloudWatch config
@@ -240,14 +232,14 @@ EOC
 
 # Verify the config file exists
 if [ ! -f ${CLOUDWATCH_CONFIG} ]; then
-    echo 'CloudWatch config file not created' | logger -t pgbouncer-setup
-    exit 1
+  echo 'CloudWatch config file not created' | logger -t pgbouncer-setup
+  exit 1
 fi
 
 # Start CloudWatch agent
 if ! /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:${CLOUDWATCH_CONFIG}; then
-    echo 'Failed to configure CloudWatch agent' | logger -t pgbouncer-setup
-    exit 1
+  echo 'Failed to configure CloudWatch agent' | logger -t pgbouncer-setup
+  exit 1
 fi
 
 systemctl enable amazon-cloudwatch-agent
@@ -255,7 +247,7 @@ systemctl start amazon-cloudwatch-agent
 
 # Verify CloudWatch agent is running
 if ! systemctl is-active amazon-cloudwatch-agent; then
-    echo 'CloudWatch agent failed to start' | logger -t pgbouncer-setup
-    exit 1
+  echo 'CloudWatch agent failed to start' | logger -t pgbouncer-setup
+  exit 1
 fi
 
