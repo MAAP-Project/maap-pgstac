@@ -1,5 +1,6 @@
 import {
   aws_ec2 as ec2,
+  aws_iam as iam,
   aws_secretsmanager as secretsmanager,
   Stack,
 } from "aws-cdk-lib";
@@ -81,6 +82,27 @@ export class PgBouncer extends Construct {
       },
     } = props;
 
+    // Create role for PgBouncer instance to enable writing to CloudWatch
+    const role = new iam.Role(this, "InstanceRole", {
+      assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          "AmazonSSMManagedInstanceCore",
+        ),
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          "CloudWatchAgentServerPolicy",
+        ),
+      ],
+    });
+
+    // Add policy to allow reading RDS credentials from Secrets Manager
+    role.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: [database.secret.secretArn],
+      }),
+    );
+
     // Create PgBouncer instance
     this.instance = new ec2.Instance(this, "Instance", {
       vpc,
@@ -95,6 +117,7 @@ export class PgBouncer extends Construct {
         "/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id",
         { os: ec2.OperatingSystemType.LINUX },
       ),
+      role,
       detailedMonitoring: true,
       blockDevices: [
         {
@@ -109,9 +132,6 @@ export class PgBouncer extends Construct {
       userData: this.loadUserDataScript(pgBouncerConfig, database),
       userDataCausesReplacement: true,
     });
-
-    // Grant read access to database secret
-    props.database.secret.grantRead(this.instance);
 
     // Allow PgBouncer to connect to RDS
     database.connections.allowFrom(
