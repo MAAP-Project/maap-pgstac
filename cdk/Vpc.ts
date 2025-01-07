@@ -35,6 +35,10 @@ export class Vpc extends Stack {
       service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
     });
 
+    this.vpc.addGatewayEndpoint("S3Endpoint", {
+      service: ec2.GatewayVpcEndpointAwsService.S3,
+    });
+
     this.exportValue(this.vpc.selectSubnets({subnetType: ec2.SubnetType.PUBLIC}).subnets[0].subnetId)
     this.exportValue(this.vpc.selectSubnets({subnetType: ec2.SubnetType.PUBLIC}).subnets[1].subnetId)
 
@@ -49,3 +53,4 @@ export interface Props extends StackProps {
    */
   natGatewayCount?: ec2.VpcProps["natGateways"];
 }
+
