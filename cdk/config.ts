@@ -17,6 +17,7 @@ export class Config {
   readonly stacBrowserRepoTag: string;
   readonly stacBrowserCustomDomainName: string;
   readonly stacBrowserCertificateArn: string;
+  readonly wafWebAclId: string | undefined;
 
   constructor() {
     // These are required environment variables and cannot be undefined
@@ -93,6 +94,7 @@ export class Config {
     this.ingestorDomainName = process.env.INGESTOR_DOMAIN_NAME;
     this.titilerPgStacApiCustomDomainName =
       process.env.TITILER_PGSTAC_API_CUSTOM_DOMAIN_NAME;
+    this.wafWebAclId = process.env.WAF_WEB_ACL_ID;
   }
 
   /**

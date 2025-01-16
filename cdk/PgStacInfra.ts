@@ -274,8 +274,21 @@ export class PgStacInfra extends Stack {
           props.stacBrowserCertificateArn,
         ),
         enableLogging: true,
+        errorResponses: [
+          {
+            httpStatus: 403,
+            responseHttpStatus: 200,
+            responsePagePath: "/index.html",
+          },
+          {
+            httpStatus: 404,
+            responseHttpStatus: 200,
+            responsePagePath: "/index.html",
+          },
+        ],
         logBucket: maapLoggingBucket,
         logFilePrefix: "stac-browser",
+        webAclId: props.wafWebAclId,
       },
     );
 
@@ -436,4 +449,14 @@ export interface Props extends StackProps {
    * Example: "arn:aws:acm:us-west-2:123456789012:certificate/12345678-1234-1234-1234-123456789012"
    */
   stacBrowserCertificateArn: string;
+
+  /**
+   * WAF WebACL ID to attach to Cloudfront Distribution.
+   * To specify a web ACL created using the latest version of AWS WAF,
+   * use the ACL ARN, for example:
+   *    arn:aws:wafv2:us-east-1:123456789012:global/webacl/ExampleWebACL/473e64fd-f30b-4765-81a0-62ad96dd167a. 
+   * To specify a web ACL created using AWS WAF Classic, use the ACL ID, for example:
+   *    473e64fd-f30b-4765-81a0-62ad96dd167a
+   */
+  wafWebAclId?: string | undefined;
 }

@@ -63,6 +63,7 @@ jobs:
         STAC_BROWSER_REPO_TAG: ${{ vars.STAC_BROWSER_REPO_TAG }}
         STAC_BROWSER_CUSTOM_DOMAIN_NAME: ${{ vars.STAC_BROWSER_CUSTOM_DOMAIN_NAME }}
         STAC_BROWSER_CERTIFICATE_ARN: ${{ vars.STAC_BROWSER_CERTIFICATE_ARN }}
+        WAF_WEB_ACL_ID: ${{ vars.WAF_WEB_ACL_ID }}
       run: |
         npm install -g aws-cdk
         cdk deploy --all --require-approval never
