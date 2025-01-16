@@ -282,13 +282,13 @@ export class PgStacInfra extends Stack {
           {
             httpStatus: 403,
             responseHttpStatus: 200,
-            responsePagePath: rootPath,
+            responsePagePath: `/${rootPath}`,
             ttl: Duration.seconds(0),
           },
           {
             httpStatus: 404,
             responseHttpStatus: 200,
-            responsePagePath: rootPath,
+            responsePagePath: `/${rootPath}`,
             ttl: Duration.seconds(0),
           },
         ],
