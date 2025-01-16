@@ -253,6 +253,8 @@ export class PgStacInfra extends Stack {
     });
 
     // STAC Browser Infrastructure
+    const rootPath = "index.html";
+
     const stacBrowserBucket = new s3.Bucket(this, "stacBrowserBucket", {
       accessControl: s3.BucketAccessControl.PRIVATE,
       removalPolicy: RemovalPolicy.DESTROY,
@@ -266,7 +268,7 @@ export class PgStacInfra extends Stack {
       "stacBrowserDistro",
       {
         defaultBehavior: { origin: new origins.S3Origin(stacBrowserBucket) },
-        defaultRootObject: "index.html",
+        defaultRootObject: rootPath,
         domainNames: [props.stacBrowserCustomDomainName],
         certificate: acm.Certificate.fromCertificateArn(
           this,
@@ -280,13 +282,13 @@ export class PgStacInfra extends Stack {
           {
             httpStatus: 403,
             responseHttpStatus: 200,
-            responsePagePath: "/index.html",
+            responsePagePath: rootPath,
             ttl: Duration.seconds(0),
           },
           {
             httpStatus: 404,
             responseHttpStatus: 200,
-            responsePagePath: "/index.html",
+            responsePagePath: rootPath,
             ttl: Duration.seconds(0),
           },
         ],
@@ -299,7 +301,7 @@ export class PgStacInfra extends Stack {
         ? props.stacApiCustomDomainName
         : `https://${props.stacApiCustomDomainName}/`,
       githubRepoTag: props.stacBrowserRepoTag,
-      websiteIndexDocument: "index.html",
+      websiteIndexDocument: rootPath,
     });
 
     const accountId = Aws.ACCOUNT_ID;
