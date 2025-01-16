@@ -276,6 +276,20 @@ export class PgStacInfra extends Stack {
         enableLogging: true,
         logBucket: maapLoggingBucket,
         logFilePrefix: "stac-browser",
+        errorResponses: [
+          {
+            httpStatus: 403,
+            responseHttpStatus: 200,
+            responsePagePath: "/index.html",
+            ttl: Duration.seconds(0),
+          },
+          {
+            httpStatus: 404,
+            responseHttpStatus: 200,
+            responsePagePath: "/index.html",
+            ttl: Duration.seconds(0),
+          },
+        ],
       },
     );
 
